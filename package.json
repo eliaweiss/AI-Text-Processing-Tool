@@ -1,20 +1,25 @@
 {
   "name": "ai-code-assistant",
   "version": "1.0.0",
-  "description": "AI-powered code completion assistant using Granite model",
-  "type": "module",
-  "main": "main.js",
+  "description": "AI-powered text processing tool using Granite model with Next.js 14",
+  "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "serve": "npx http-server -p 8000 -c-1"
+    "dev": "next dev -p 5173",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
-    "@huggingface/transformers": "^3.7.6"
+    "@huggingface/transformers": "^3.7.6",
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
   },
   "devDependencies": {
-    "vite": "^5.0.0"
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.3.0"
   },
   "author": "",
   "license": "MIT"
