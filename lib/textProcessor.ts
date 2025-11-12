@@ -11,14 +11,14 @@ export function getDefaultPromptTemplate(operation: OperationType): string {
   switch (operation) {
     case "rephrase":
       return `You are a rephrase expert. Rewrite the following text to be more concise while preserving its meaning. Only output the rewritten text, nothing else.
-
+Keep the original language.
 Text: {TEXT}
 
-Rewritten:`;
+`;
 
     case "grammar":
       return `You are a grammar corrector. Fix only the grammatical and punctuation errors in the following text. Keep the original wording and sentence structure as much as possible. Only output the corrected text, nothing else.
-
+Keep the original language.
 Text: {TEXT}
 
 `;
