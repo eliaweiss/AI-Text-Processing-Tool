@@ -7,7 +7,6 @@ import type { OperationType, ProcessRequest, ProcessResult } from "./types";
 import rephrasePrompt from "../prompts/rephrase.md";
 import grammarPrompt from "../prompts/grammar.md";
 import translatePrompt from "../prompts/translate.md";
-import defaultPrompt from "../prompts/default.md";
 
 /**
  * Get the default prompt template for an operation
@@ -26,7 +25,7 @@ export function getDefaultPromptTemplate(operation: OperationType): string {
       return translatePrompt;
 
     default:
-      return defaultPrompt;
+      throw new Error(`Unsupported operation: ${operation}`);
   }
 }
 

@@ -7,7 +7,6 @@ This directory contains the prompt templates used by the text processor. Each ma
 - **`rephrase.md`** - Prompt for rephrasing text to be more concise
 - **`grammar.md`** - Prompt for fixing grammar and punctuation errors
 - **`translate.md`** - Prompt for translating text between languages
-- **`default.md`** - Default prompt for generic text processing
 
 ## Editing Prompts
 
