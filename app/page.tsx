@@ -9,7 +9,7 @@ import {
 import type { OperationType, AppState } from "@/lib/types";
 
 // Model configuration
-const MODEL_ID = "gpt-oss:20b";
+const MODEL_ID = "gemma3:latest";
 
 export default function Home() {
   // State management
