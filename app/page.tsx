@@ -9,7 +9,7 @@ import {
 import type { OperationType, AppState } from "@/lib/types";
 
 // Model configuration
-const MODEL_ID = "phi4-mini:3.8b";
+const MODEL_ID = "gpt-oss:20b";
 
 export default function Home() {
   // State management
@@ -20,7 +20,7 @@ export default function Home() {
   });
   const [inputText, setInputText] = useState("");
   const [operation, setOperation] = useState<OperationType>("rephrase");
-  const [numVariations, setNumVariations] = useState(4);
+  const [numVariations, setNumVariations] = useState(1);
   const [targetLanguage, setTargetLanguage] = useState("English");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [variations, setVariations] = useState<
@@ -232,6 +232,17 @@ export default function Home() {
   return (
     <div className="container">
       <h1>AI Text Processing Tool</h1>
+      <div
+        style={{
+          textAlign: "center",
+          marginTop: "-10px",
+          marginBottom: "20px",
+          color: "#666",
+          fontSize: "14px",
+        }}
+      >
+        Using model: <strong>{MODEL_ID}</strong>
+      </div>
 
       <div className="controls">
         <label htmlFor="operation-select">Operation:</label>
