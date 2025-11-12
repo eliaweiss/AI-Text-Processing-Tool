@@ -25,7 +25,7 @@ export default function Home() {
   });
   const [inputText, setInputText] = useState("");
   const [operation, setOperation] = useState<OperationType>("rephrase");
-  const [numVariations, setNumVariations] = useState(2);
+  const [numVariations, setNumVariations] = useState(4);
   const [targetLanguage, setTargetLanguage] = useState("English");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [variations, setVariations] = useState<
@@ -277,24 +277,25 @@ export default function Home() {
         </div>
       )}
 
-      <div className="controls">
-        <label htmlFor="operation-select">Operation:</label>
-        <select
-          id="operation-select"
-          value={operation}
-          onChange={(e) => setOperation(e.target.value as OperationType)}
-          disabled={appState.isProcessing}
-        >
-          <optgroup label="Basic Operations">
-            <option value="rephrase">Rephrase (Make Concise)</option>
-            <option value="grammar">Fix Grammar & Punctuation</option>
-          </optgroup>
-          <optgroup label="Translation">
-            <option value="translate">Translate (Custom Language)</option>
-            <option value="translate-pt">Target lang PT</option>
-            <option value="translate-en">Target lang EN</option>
-          </optgroup>
-          {/* 
+      {!loadingMessage && (
+        <div className="controls">
+          <label htmlFor="operation-select">Operation:</label>
+          <select
+            id="operation-select"
+            value={operation}
+            onChange={(e) => setOperation(e.target.value as OperationType)}
+            disabled={appState.isProcessing}
+          >
+            <optgroup label="Basic Operations">
+              <option value="rephrase">Rephrase (Make Concise)</option>
+              <option value="grammar">Fix Grammar & Punctuation</option>
+            </optgroup>
+            <optgroup label="Translation">
+              <option value="translate">Translate (Custom Language)</option>
+              <option value="translate-pt">Target lang PT</option>
+              <option value="translate-en">Target lang EN</option>
+            </optgroup>
+            {/* 
           <optgroup label="Clarity & Style">
             <option value="simplify">Simplify (ELI5)</option>
             <option value="expand">Expand & Elaborate</option>
@@ -313,96 +314,99 @@ export default function Home() {
           <optgroup label="Cleanup">
             <option value="remove-filler">Remove Filler Words</option>
           </optgroup> */}
-        </select>
+          </select>
 
-        {operation.startsWith("translate") && (
-          <>
-            <label htmlFor="language-input">Target Language:</label>
-            <input
-              type="text"
-              id="language-input"
-              placeholder="e.g., English, Spanish, French..."
-              value={targetLanguage}
-              onChange={(e) => setTargetLanguage(e.target.value)}
-              disabled={
-                appState.isProcessing ||
-                operation === "translate-pt" ||
-                operation === "translate-en"
-              }
-            />
-          </>
-        )}
+          {operation.startsWith("translate") && (
+            <>
+              <label htmlFor="language-input">Target Language:</label>
+              <input
+                type="text"
+                id="language-input"
+                placeholder="e.g., English, Spanish, French..."
+                value={targetLanguage}
+                onChange={(e) => setTargetLanguage(e.target.value)}
+                disabled={
+                  appState.isProcessing ||
+                  operation === "translate-pt" ||
+                  operation === "translate-en"
+                }
+              />
+            </>
+          )}
 
-        <label htmlFor="variations-input">Variations:</label>
-        <input
-          type="number"
-          id="variations-input"
-          min="1"
-          max="5"
-          value={numVariations}
-          onChange={(e) => setNumVariations(parseInt(e.target.value) || 2)}
-          disabled={appState.isProcessing}
-        />
-
-        <button
-          onClick={handleSubmit}
-          disabled={!appState.modelLoaded || appState.isProcessing}
-        >
-          Generate Variations
-        </button>
-      </div>
-
-      <div className="main-layout">
-        <div className="input-section">
-          <label htmlFor="input-text">Input Text</label>
-          <textarea
-            id="input-text"
-            placeholder="Enter your text here..."
-            rows={12}
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
+          <label htmlFor="variations-input">Variations:</label>
+          <input
+            type="number"
+            id="variations-input"
+            min="1"
+            max="5"
+            value={numVariations}
+            onChange={(e) => setNumVariations(parseInt(e.target.value) || 2)}
             disabled={appState.isProcessing}
           />
-        </div>
 
-        <div className="variations-section">
-          <h3>Generated Variations</h3>
-          <div className="variations-container">
-            {variations.map((variation, index) => (
-              <div
-                key={index}
-                className={`variation-card ${variation.error ? "error" : ""} ${
-                  variation.isStreaming ? "streaming" : ""
-                }`}
-              >
-                <div className="variation-header">
-                  <span className="variation-label">
-                    {variation.rank !== undefined
-                      ? `#${variation.rank}`
-                      : `Variation ${index + 1}`}
-                    {variation.isStreaming && (
-                      <span className="streaming-indicator"> ⟳</span>
+          <button
+            onClick={handleSubmit}
+            disabled={!appState.modelLoaded || appState.isProcessing}
+          >
+            Generate Variations
+          </button>
+        </div>
+      )}
+
+      {!loadingMessage && (
+        <div className="main-layout">
+          <div className="input-section">
+            <label htmlFor="input-text">Input Text</label>
+            <textarea
+              id="input-text"
+              placeholder="Enter your text here..."
+              rows={12}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={appState.isProcessing}
+            />
+          </div>
+
+          <div className="variations-section">
+            <h3>Generated Variations</h3>
+            <div className="variations-container">
+              {variations.map((variation, index) => (
+                <div
+                  key={index}
+                  className={`variation-card ${
+                    variation.error ? "error" : ""
+                  } ${variation.isStreaming ? "streaming" : ""}`}
+                >
+                  <div className="variation-header">
+                    <span className="variation-label">
+                      {variation.rank !== undefined
+                        ? `#${variation.rank}`
+                        : `Variation ${index + 1}`}
+                      {variation.isStreaming && (
+                        <span className="streaming-indicator"> ⟳</span>
+                      )}
+                    </span>
+                    {!variation.error && !variation.isStreaming && (
+                      <button
+                        className="copy-variation-btn"
+                        onClick={() => handleCopy(variation.text, index)}
+                      >
+                        📋 Copy
+                      </button>
                     )}
-                  </span>
-                  {!variation.error && !variation.isStreaming && (
-                    <button
-                      className="copy-variation-btn"
-                      onClick={() => handleCopy(variation.text, index)}
-                    >
-                      📋 Copy
-                    </button>
-                  )}
+                  </div>
+                  <div className="variation-content">
+                    {variation.text ||
+                      (variation.isStreaming ? "Generating..." : "")}
+                  </div>
                 </div>
-                <div className="variation-content">
-                  {variation.text ||
-                    (variation.isStreaming ? "Generating..." : "")}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {statusMessage && (
         <div className={`status-message visible ${statusMessage.type}`}>
@@ -410,28 +414,30 @@ export default function Home() {
         </div>
       )}
 
-      <div className="prompt-editor">
-        <div className="prompt-header">
-          <label htmlFor="system-prompt">
-            System Prompt (Customize how the AI processes text)
-          </label>
-          <button
-            className="secondary-btn"
-            onClick={handleResetPrompt}
+      {!loadingMessage && (
+        <div className="prompt-editor">
+          <div className="prompt-header">
+            <label htmlFor="system-prompt">
+              System Prompt (Customize how the AI processes text)
+            </label>
+            <button
+              className="secondary-btn"
+              onClick={handleResetPrompt}
+              disabled={appState.isProcessing}
+            >
+              Reset to Default
+            </button>
+          </div>
+          <textarea
+            id="system-prompt"
+            placeholder="Enter custom system prompt..."
+            rows={4}
+            value={systemPrompt}
+            onChange={(e) => setSystemPrompt(e.target.value)}
             disabled={appState.isProcessing}
-          >
-            Reset to Default
-          </button>
+          />
         </div>
-        <textarea
-          id="system-prompt"
-          placeholder="Enter custom system prompt..."
-          rows={4}
-          value={systemPrompt}
-          onChange={(e) => setSystemPrompt(e.target.value)}
-          disabled={appState.isProcessing}
-        />
-      </div>
+      )}
     </div>
   );
 }
