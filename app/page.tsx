@@ -22,6 +22,7 @@ export default function Home() {
   const [inputText, setInputText] = useState("");
   const [operation, setOperation] = useState<OperationType>("rephrase");
   const [numVariations, setNumVariations] = useState(2);
+  const [targetLanguage, setTargetLanguage] = useState("English");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [variations, setVariations] = useState<
     Array<{ text: string; error?: boolean }>
@@ -137,6 +138,8 @@ export default function Home() {
             operation,
             customPrompt: customPrompt || undefined,
             seed: i,
+            targetLanguage:
+              operation === "translate" ? targetLanguage : undefined,
           }
         );
 
@@ -231,7 +234,25 @@ export default function Home() {
           <optgroup label="Cleanup">
             <option value="remove-filler">Remove Filler Words</option>
           </optgroup>
+
+          <optgroup label="Translation">
+            <option value="translate">Translate</option>
+          </optgroup>
         </select>
+
+        {operation === "translate" && (
+          <>
+            <label htmlFor="language-input">Target Language:</label>
+            <input
+              type="text"
+              id="language-input"
+              placeholder="e.g., English, Spanish, French..."
+              value={targetLanguage}
+              onChange={(e) => setTargetLanguage(e.target.value)}
+              disabled={appState.isProcessing}
+            />
+          </>
+        )}
 
         <label htmlFor="variations-input">Variations:</label>
         <input

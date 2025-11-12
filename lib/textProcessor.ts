@@ -58,7 +58,13 @@ Paragraph:`,
 
 Text: ${text}
 
-Cleaned:`
+Cleaned:`,
+
+  translate: (text: string, targetLanguage: string = 'English') => `Translate the following text to ${targetLanguage}. Automatically detect the source language. Only output the translated text, nothing else.
+
+Text: ${text}
+
+Translation:`
 };
 
 /**
@@ -129,6 +135,13 @@ Text: {TEXT}
 
 Cleaned:`;
     
+    case 'translate':
+      return `Translate the following text to {LANGUAGE}. Automatically detect the source language. Only output the translated text, nothing else.
+
+Text: {TEXT}
+
+Translation:`;
+    
     default:
       return `Process the following text:
 
@@ -169,11 +182,18 @@ export async function processText(
     let prompt: string;
     
     if (request.customPrompt && request.customPrompt.trim()) {
-      // Use custom prompt, replacing {TEXT} placeholder with actual text
-      prompt = request.customPrompt.replace('{TEXT}', request.text);
+      // Use custom prompt, replacing placeholders
+      prompt = request.customPrompt
+        .replace('{TEXT}', request.text)
+        .replace('{LANGUAGE}', request.targetLanguage || 'English');
     } else {
       // Use default prompt
-      prompt = DEFAULT_PROMPTS[request.operation](request.text);
+      if (request.operation === 'translate') {
+        const targetLang = request.targetLanguage || 'English';
+        prompt = DEFAULT_PROMPTS.translate(request.text, targetLang);
+      } else {
+        prompt = DEFAULT_PROMPTS[request.operation](request.text);
+      }
     }
 
     // Create messages for the model
@@ -244,7 +264,7 @@ function cleanResponse(response: string, operation: OperationType): string {
   // Remove common prefixes
   const prefixes = ['Rewritten:', 'Corrected:', 'Simplified:', 'Expanded:', 
                     'Formal version:', 'Casual version:', 'Bullet points:', 
-                    'Paragraph:', 'Cleaned:', 'Text:', 'Output:', 'Result:'];
+                    'Paragraph:', 'Cleaned:', 'Translation:', 'Text:', 'Output:', 'Result:'];
   for (const prefix of prefixes) {
     if (cleaned.startsWith(prefix)) {
       cleaned = cleaned.substring(prefix.length).trim();
@@ -283,6 +303,8 @@ export function getOperationDescription(operation: OperationType): string {
       return 'Converting to paragraph...';
     case 'remove-filler':
       return 'Removing filler words...';
+    case 'translate':
+      return 'Translating text...';
     default:
       return 'Processing text...';
   }

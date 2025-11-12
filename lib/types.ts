@@ -3,7 +3,7 @@
  */
 
 // Operation types that can be performed on text
-export type OperationType = 'rephrase' | 'grammar' | 'simplify' | 'expand' | 'formal' | 'casual' | 'to-bullets' | 'to-paragraph' | 'remove-filler';
+export type OperationType = 'rephrase' | 'grammar' | 'simplify' | 'expand' | 'formal' | 'casual' | 'to-bullets' | 'to-paragraph' | 'remove-filler' | 'translate';
 
 // Application state
 export interface AppState {
@@ -18,6 +18,7 @@ export interface ProcessRequest {
   operation: OperationType;
   customPrompt?: string;
   seed?: number;
+  targetLanguage?: string;
 }
 
 // Text processing result
