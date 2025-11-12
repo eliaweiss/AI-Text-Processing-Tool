@@ -156,10 +156,14 @@ export default function Home() {
         if (result.success && result.processedText) {
           newVariations.push({ text: result.processedText });
         } else {
+          console.error("Generation failed:", result.error);
+          const errorMessage = result.error || "Failed to generate";
           newVariations.push({
-            text: result.error || "Failed to generate",
+            text: errorMessage,
             error: true,
           });
+          // Also show error in status
+          showError(errorMessage);
         }
 
         setVariations([...newVariations]);

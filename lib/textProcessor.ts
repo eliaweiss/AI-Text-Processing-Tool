@@ -5,7 +5,10 @@
 import type { OperationType, ProcessRequest, ProcessResult } from "./types";
 
 // Default prompt templates for different operations
-export const DEFAULT_PROMPTS: Record<string, (text: string) => string> = {
+export const DEFAULT_PROMPTS: Record<
+  string,
+  (text: string, ...args: any[]) => string
+> = {
   rephrase: (
     text: string
   ) => `Rewrite the following text to be more concise while preserving its meaning. Only output the rewritten text, nothing else.
@@ -81,11 +84,11 @@ Cleaned:`,
   translate: (
     text: string,
     targetLanguage: string = "English"
-  ) => `Translate the following text to ${targetLanguage}. Automatically detect the source language. Only output the translated text, nothing else.
+  ) => `You are a translator. Translate the following text from its current language to ${targetLanguage}. Output ONLY the translated text with no labels or explanations.
 
-Text: ${text}
+Text to translate: ${text}
 
-Translation:`,
+${targetLanguage} translation:`,
 };
 
 /**
@@ -159,11 +162,11 @@ Cleaned:`;
     case "translate":
     case "translate-pt":
     case "translate-en":
-      return `Translate the following text to {LANGUAGE}. Automatically detect the source language. Only output the translated text, nothing else.
+      return `You are a translator. Translate the following text from its current language to {LANGUAGE}. Output ONLY the translated text with no labels or explanations.
 
-Text: {TEXT}
+Text to translate: {TEXT}
 
-Translation:`;
+{LANGUAGE} translation:`;
 
     default:
       return `Process the following text:
@@ -204,19 +207,36 @@ export async function processText(
     // Get the appropriate prompt for the operation
     let prompt: string;
 
-    if (request.customPrompt && request.customPrompt.trim()) {
-      // Use custom prompt, replacing placeholders
-      prompt = request.customPrompt
-        .replace("{TEXT}", request.text)
-        .replace("{LANGUAGE}", request.targetLanguage || "English");
-    } else {
-      // Use default prompt
-      if (request.operation.startsWith("translate")) {
-        const targetLang = request.targetLanguage || "English";
-        prompt = DEFAULT_PROMPTS.translate(request.text, targetLang);
+    try {
+      if (request.customPrompt && request.customPrompt.trim()) {
+        // Use custom prompt, replacing placeholders
+        prompt = request.customPrompt
+          .replace("{TEXT}", request.text)
+          .replace("{LANGUAGE}", request.targetLanguage || "English");
       } else {
-        prompt = DEFAULT_PROMPTS[request.operation](request.text);
+        // Use default prompt
+        if (request.operation.startsWith("translate")) {
+          const targetLang = request.targetLanguage || "English";
+          prompt = DEFAULT_PROMPTS.translate(request.text, targetLang);
+        } else {
+          const promptFn = DEFAULT_PROMPTS[request.operation];
+          if (!promptFn) {
+            return {
+              success: false,
+              error: `Unknown operation: ${request.operation}`,
+            };
+          }
+          prompt = promptFn(request.text);
+        }
       }
+    } catch (error) {
+      console.error("Error generating prompt:", error);
+      return {
+        success: false,
+        error: `Error generating prompt: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      };
     }
 
     // Create messages for the model
@@ -251,7 +271,24 @@ export async function processText(
       generationConfig.temperature = 0.6 + seedVariation;
     }
 
-    const { sequences } = await model.generate(generationConfig);
+    console.log("Generating with config:", {
+      operation: request.operation,
+      temperature: generationConfig.temperature,
+      max_new_tokens: generationConfig.max_new_tokens,
+    });
+    console.log("Prompt being sent:", prompt);
+
+    const result = await model.generate(generationConfig);
+
+    if (!result || !result.sequences) {
+      console.error("Model generate returned unexpected result:", result);
+      return {
+        success: false,
+        error: "Model generation failed: no sequences returned",
+      };
+    }
+
+    const { sequences } = result;
 
     // Decode the generated text
     const response = tokenizer.batch_decode(
@@ -259,8 +296,26 @@ export async function processText(
       { skip_special_tokens: true }
     )[0];
 
+    if (!response) {
+      console.error("Tokenizer decode returned empty response");
+      return {
+        success: false,
+        error: "Model generation failed: empty response from decoder",
+      };
+    }
+
+    console.log("Raw model response:", response);
+
     // Clean up the response
     const processedText = cleanResponse(response, request.operation);
+
+    if (!processedText || !processedText.trim()) {
+      console.error("Cleaned response is empty");
+      return {
+        success: false,
+        error: "Model generation failed: empty result after cleaning",
+      };
+    }
 
     return {
       success: true,
@@ -300,9 +355,18 @@ function cleanResponse(response: string, operation: OperationType): string {
     "Output:",
     "Result:",
   ];
-  for (const prefix of prefixes) {
-    if (cleaned.startsWith(prefix)) {
-      cleaned = cleaned.substring(prefix.length).trim();
+
+  // Also check for language-specific translation prefixes (e.g., "Portuguese translation:", "English translation:")
+  const translationPrefixMatch = cleaned.match(/^[A-Za-z]+\s+translation:\s*/);
+  if (translationPrefixMatch) {
+    cleaned = cleaned.substring(translationPrefixMatch[0].length).trim();
+  } else {
+    // Try standard prefixes
+    for (const prefix of prefixes) {
+      if (cleaned.startsWith(prefix)) {
+        cleaned = cleaned.substring(prefix.length).trim();
+        break;
+      }
     }
   }
 
