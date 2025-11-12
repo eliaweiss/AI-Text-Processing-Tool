@@ -215,7 +215,10 @@ export default function Home() {
             <option value="rephrase">Rephrase (Make Concise)</option>
             <option value="grammar">Fix Grammar & Punctuation</option>
           </optgroup>
-
+          <optgroup label="Translation">
+            <option value="translate">Translate</option>
+          </optgroup>
+          {/* 
           <optgroup label="Clarity & Style">
             <option value="simplify">Simplify (ELI5)</option>
             <option value="expand">Expand & Elaborate</option>
@@ -233,11 +236,7 @@ export default function Home() {
 
           <optgroup label="Cleanup">
             <option value="remove-filler">Remove Filler Words</option>
-          </optgroup>
-
-          <optgroup label="Translation">
-            <option value="translate">Translate</option>
-          </optgroup>
+          </optgroup> */}
         </select>
 
         {operation === "translate" && (
