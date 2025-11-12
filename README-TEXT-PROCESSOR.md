@@ -10,9 +10,18 @@ This project tests whether in-browser Large Language Models can effectively hand
 
 ## Features
 
-- **Two Text Processing Operations**:
-  - Rephrase text to be more concise
-  - Fix grammar and punctuation errors
+- **Nine Text Processing Operations**:
+  - **Basic Operations**:
+    - Rephrase text to be more concise
+    - Fix grammar and punctuation errors
+  - **Advanced Operations** (toggle to reveal):
+    - Simplify text (ELI5 - Explain Like I'm 5)
+    - Expand and elaborate on text
+    - Convert to formal tone
+    - Convert to casual tone
+    - Convert to bullet points
+    - Convert to paragraph
+    - Remove filler words
 - **Multiple Variations**: Generate 1-5 variations with different seeds to see different options
 - **Customizable System Prompts**: Edit the system prompt to customize how the AI processes text
 - **Copy to Clipboard**: Easily copy any generated variation with one click
@@ -69,8 +78,15 @@ npm run preview:text
 2. **Enter Your Text**: Type or paste text into the "Input Text" textarea.
 
 3. **Select Operation**:
-   - Choose "Rephrase (Make Concise)" to make text more concise
-   - Choose "Fix Grammar & Punctuation" to correct errors
+   - Start with basic operations: "Rephrase" or "Fix Grammar & Punctuation"
+   - Check **"Advanced Options"** to reveal 7 additional operations:
+     - Simplify (ELI5)
+     - Expand & Elaborate
+     - Make Formal
+     - Make Casual
+     - Convert to Bullet Points
+     - Convert to Paragraph
+     - Remove Filler Words
 
 4. **Set Number of Variations**: Choose how many variations you want to generate (1-5, default is 2).
 

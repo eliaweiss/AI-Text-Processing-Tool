@@ -51,6 +51,21 @@ h1 {
   font-size: 14px;
 }
 
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  margin: 0;
+}
+
 input[type="number"] {
   padding: 10px 15px;
   border-radius: 5px;
@@ -163,7 +178,7 @@ button:disabled {
   font-weight: 600;
 }
 
-#variations-container {
+.variations-container {
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -172,21 +187,21 @@ button:disabled {
   padding-right: 5px;
 }
 
-#variations-container::-webkit-scrollbar {
+.variations-container::-webkit-scrollbar {
   width: 8px;
 }
 
-#variations-container::-webkit-scrollbar-track {
+.variations-container::-webkit-scrollbar-track {
   background: #f5f5f5;
   border-radius: 4px;
 }
 
-#variations-container::-webkit-scrollbar-thumb {
+.variations-container::-webkit-scrollbar-thumb {
   background: #cccccc;
   border-radius: 4px;
 }
 
-#variations-container::-webkit-scrollbar-thumb:hover {
+.variations-container::-webkit-scrollbar-thumb:hover {
   background: #999999;
 }
 
@@ -313,6 +328,10 @@ button:disabled {
   font-size: 14px;
   display: none;
   margin-top: 10px;
+}
+
+.status-message.visible {
+  display: block;
 }
 
 .status-message.info {
