@@ -119,9 +119,9 @@ export async function processText(
     ////////
 
     console.log("Generating with config:", {
-      operation: request.operation,
-      temperature: generationConfig.temperature,
-      max_new_tokens: generationConfig.max_new_tokens,
+      // operation: request.operation,
+      // temperature: generationConfig.temperature,
+      // max_new_tokens: generationConfig.max_new_tokens,
       seed: generationConfig.seed,
     });
     console.log("Prompt being sent:", prompt);
@@ -133,7 +133,7 @@ export async function processText(
         skip_prompt: true,
         skip_special_tokens: true,
         callback_function: (text: string) => {
-          console.log("Streaming chunk:", text);
+          // console.log("Streaming chunk:", text);
           // Accumulate the text
           accumulatedText += text;
 
