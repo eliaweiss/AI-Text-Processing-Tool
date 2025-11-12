@@ -104,7 +104,9 @@ export async function processText(
       console.error("Ollama API error:", errorText);
       return {
         success: false,
-        error: `Ollama API error: ${response.status} - ${errorText || "Check if Ollama is running"}`,
+        error: `Ollama API error: ${response.status} - ${
+          errorText || "Check if Ollama is running"
+        }`,
       };
     }
 
@@ -124,7 +126,7 @@ export async function processText(
     try {
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
 
         // Decode the chunk and add to buffer
@@ -140,7 +142,7 @@ export async function processText(
               const json = JSON.parse(line);
               if (json.response) {
                 accumulatedText += json.response;
-                
+
                 // Stream the accumulated response
                 if (request.onStream) {
                   request.onStream(accumulatedText);
@@ -313,7 +315,9 @@ export async function rankGenerations(
 
     // Extract the ranking list from response
     // Looking for pattern like [B,A,C] or B,A,C
-    const rankingMatch = responseText.match(/\[?\s*([A-Z](?:\s*,\s*[A-Z])*)\s*\]?/);
+    const rankingMatch = responseText.match(
+      /\[?\s*([A-Z](?:\s*,\s*[A-Z])*)\s*\]?/
+    );
 
     if (!rankingMatch) {
       return {

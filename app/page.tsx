@@ -35,6 +35,8 @@ export default function Home() {
     text: string;
     type: "info" | "success" | "error";
   } | null>(null);
+  const [isRanking, setIsRanking] = useState(false);
+  const [hasRanked, setHasRanked] = useState(false);
 
   // Update system prompt when operation changes
   useEffect(() => {
@@ -83,6 +85,7 @@ export default function Home() {
 
     setAppState((prev) => ({ ...prev, isProcessing: true }));
     setVariations([]);
+    setHasRanked(false);
 
     showStatus(
       `Generating ${numVariations} variation${numVariations > 1 ? "s" : ""}...`
@@ -143,29 +146,6 @@ export default function Home() {
         setVariations([...newVariations]);
       }
 
-      // Rank the generations
-      const successfulGenerations = newVariations.filter((v) => !v.error);
-      if (successfulGenerations.length > 1) {
-        showStatus("Ranking generations...");
-
-        const rankingResult = await rankGenerations(MODEL_ID, {
-          task: customPrompt || getDefaultPromptTemplate(operation),
-          generations: successfulGenerations.map((v) => v.text),
-        });
-
-        if (rankingResult.success && rankingResult.ranking) {
-          // Reorder variations based on ranking
-          const rankedVariations = rankingResult.ranking.map(
-            (originalIndex, newRank) => ({
-              ...successfulGenerations[originalIndex],
-              rank: newRank + 1, // 1-indexed rank for display
-            })
-          );
-
-          setVariations(rankedVariations);
-        }
-      }
-
       showSuccess(
         `Generated ${numVariations} variation${
           numVariations > 1 ? "s" : ""
@@ -176,6 +156,51 @@ export default function Home() {
       showError("An error occurred during processing");
     } finally {
       setAppState((prev) => ({ ...prev, isProcessing: false }));
+    }
+  };
+
+  // Handle ranking
+  const handleRank = async () => {
+    if (isRanking || hasRanked) {
+      return;
+    }
+
+    const successfulGenerations = variations.filter((v) => !v.error);
+    if (successfulGenerations.length < 2) {
+      showError("Need at least 2 successful generations to rank");
+      return;
+    }
+
+    setIsRanking(true);
+    showStatus("Ranking generations...");
+
+    try {
+      const customPrompt = systemPrompt.trim();
+      const rankingResult = await rankGenerations(MODEL_ID, {
+        task: customPrompt || getDefaultPromptTemplate(operation),
+        generations: successfulGenerations.map((v) => v.text),
+      });
+
+      if (rankingResult.success && rankingResult.ranking) {
+        // Reorder variations based on ranking
+        const rankedVariations = rankingResult.ranking.map(
+          (originalIndex, newRank) => ({
+            ...successfulGenerations[originalIndex],
+            rank: newRank + 1, // 1-indexed rank for display
+          })
+        );
+
+        setVariations(rankedVariations);
+        setHasRanked(true);
+        showSuccess("Ranking complete!");
+      } else {
+        showError(rankingResult.error || "Ranking failed");
+      }
+    } catch (error) {
+      console.error("Ranking error:", error);
+      showError("An error occurred during ranking");
+    } finally {
+      setIsRanking(false);
     }
   };
 
@@ -275,10 +300,7 @@ export default function Home() {
           disabled={appState.isProcessing}
         />
 
-        <button
-          onClick={handleSubmit}
-          disabled={appState.isProcessing}
-        >
+        <button onClick={handleSubmit} disabled={appState.isProcessing}>
           Generate Variations
         </button>
       </div>
@@ -298,7 +320,31 @@ export default function Home() {
         </div>
 
         <div className="variations-section">
-          <h3>Generated Variations</h3>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <h3>Generated Variations</h3>
+            {variations.length > 1 &&
+              !appState.isProcessing &&
+              variations.some((v) => !v.error) && (
+                <button
+                  onClick={handleRank}
+                  disabled={isRanking || hasRanked}
+                  className="secondary-btn"
+                  style={{ marginLeft: "auto" }}
+                >
+                  {isRanking
+                    ? "Ranking..."
+                    : hasRanked
+                    ? "✓ Ranked"
+                    : "🏆 Rank Variations"}
+                </button>
+              )}
+          </div>
           {statusMessage && (
             <div className={`status-message visible ${statusMessage.type}`}>
               {statusMessage.text}
@@ -308,9 +354,9 @@ export default function Home() {
             {variations.map((variation, index) => (
               <div
                 key={index}
-                className={`variation-card ${
-                  variation.error ? "error" : ""
-                } ${variation.isStreaming ? "streaming" : ""}`}
+                className={`variation-card ${variation.error ? "error" : ""} ${
+                  variation.isStreaming ? "streaming" : ""
+                }`}
               >
                 <div className="variation-header">
                   <span className="variation-label">
