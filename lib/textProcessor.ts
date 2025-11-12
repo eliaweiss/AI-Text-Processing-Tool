@@ -97,67 +97,18 @@ ${targetLanguage} translation:`,
 export function getDefaultPromptTemplate(operation: OperationType): string {
   switch (operation) {
     case "rephrase":
-      return `Rewrite the following text to be more concise while preserving its meaning. Only output the rewritten text, nothing else.
+      return `You are a rephrase expert. Rewrite the following text to be more concise while preserving its meaning. Only output the rewritten text, nothing else.
 
 Text: {TEXT}
 
 Rewritten:`;
 
     case "grammar":
-      return `Fix only the grammatical and punctuation errors in the following text. Keep the original wording and sentence structure as much as possible. Only output the corrected text, nothing else.
+      return `You are a grammar corrector. Fix only the grammatical and punctuation errors in the following text. Keep the original wording and sentence structure as much as possible. Only output the corrected text, nothing else.
 
 Text: {TEXT}
 
-Corrected:`;
-
-    case "simplify":
-      return `Rewrite the following text to be simpler and easier to understand. Use simpler words and shorter sentences as if explaining to a 10-year-old. Only output the simplified text, nothing else.
-
-Text: {TEXT}
-
-Simplified:`;
-
-    case "expand":
-      return `Expand and elaborate on the following text. Add more detail, context, and explanations while keeping the same meaning. Only output the expanded text, nothing else.
-
-Text: {TEXT}
-
-Expanded:`;
-
-    case "formal":
-      return `Rewrite the following text in a formal and professional tone. Remove casual language, slang, and contractions. Only output the formal version, nothing else.
-
-Text: {TEXT}
-
-Formal version:`;
-
-    case "casual":
-      return `Rewrite the following text in a casual and conversational tone. Make it friendly and approachable. Only output the casual version, nothing else.
-
-Text: {TEXT}
-
-Casual version:`;
-
-    case "to-bullets":
-      return `Convert the following text into clear, concise bullet points. Each bullet should be a separate key point. Only output the bullet points, nothing else.
-
-Text: {TEXT}
-
-Bullet points:`;
-
-    case "to-paragraph":
-      return `Convert the following bullet points into a well-flowing paragraph. Connect the ideas smoothly. Only output the paragraph, nothing else.
-
-Text: {TEXT}
-
-Paragraph:`;
-
-    case "remove-filler":
-      return `Remove all filler words and phrases from the following text (like "um", "like", "basically", "actually", "you know", etc.). Keep the meaning intact. Only output the cleaned text, nothing else.
-
-Text: {TEXT}
-
-Cleaned:`;
+`;
 
     case "translate":
     case "translate-pt":
@@ -166,7 +117,7 @@ Cleaned:`;
 
 Text to translate: {TEXT}
 
-{LANGUAGE} translation:`;
+`;
 
     default:
       return `Process the following text:
@@ -253,28 +204,26 @@ export async function processText(
       return_dict: true,
     });
 
-    // Generate response using the model
+    // Generate response using the model - dont change this code
     const generationConfig: any = {
       ...chatInput,
       max_new_tokens: 512,
       do_sample: true,
-      temperature: 0.7,
-      top_p: 0.9,
+      temperature: 1,
       return_dict_in_generate: true,
     };
 
     // Add seed if provided for variation generation
     if (request.seed !== undefined) {
-      // Note: transformers.js doesn't directly support seed, but we can vary temperature slightly
-      // to create variations. We'll use seed to modify temperature
-      const seedVariation = (request.seed % 10) / 20; // 0 to 0.5
-      generationConfig.temperature = 0.6 + seedVariation;
+      generationConfig.seed = request.seed;
     }
+    ////////
 
     console.log("Generating with config:", {
       operation: request.operation,
       temperature: generationConfig.temperature,
       max_new_tokens: generationConfig.max_new_tokens,
+      seed: generationConfig.seed,
     });
     console.log("Prompt being sent:", prompt);
 
