@@ -14,6 +14,7 @@ This project tests whether in-browser Large Language Models can effectively hand
   - Rephrase text to be more concise
   - Fix grammar and punctuation errors
 - **Customizable System Prompts**: Edit the system prompt to customize how the AI processes text
+- **Copy to Clipboard**: Easily copy generated text with one click
 - **In-Browser Processing**: All text processing happens locally using WebGPU
 - **TypeScript**: Type-safe implementation for better development experience
 - **Modern UI**: Clean, dark-themed interface with responsive design
@@ -79,6 +80,8 @@ npm run preview:text
 5. **Process**: Click the "Process Text" button or press `Ctrl/Cmd + Enter`.
 
 6. **View Results**: The processed text will appear in the "Result" textarea.
+
+7. **Copy Results**: Click the "📋 Copy to Clipboard" button to copy the generated text.
 
 ## Technical Stack
 

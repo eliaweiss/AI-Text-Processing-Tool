@@ -40,7 +40,12 @@
         </div>
 
         <div class="textarea-wrapper">
-          <label for="output-text">Result</label>
+          <div class="output-header">
+            <label for="output-text">Result</label>
+            <button id="copy-btn" class="copy-btn" style="display: none;">
+              📋 Copy to Clipboard
+            </button>
+          </div>
           <textarea
             id="output-text"
             placeholder="Processed text will appear here..."

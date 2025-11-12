@@ -38,6 +38,7 @@ const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
 const statusMessage = document.getElementById('status-message') as HTMLDivElement;
 const systemPromptTextarea = document.getElementById('system-prompt') as HTMLTextAreaElement;
 const resetPromptBtn = document.getElementById('reset-prompt-btn') as HTMLButtonElement;
+const copyBtn = document.getElementById('copy-btn') as HTMLButtonElement;
 
 /**
  * Load the model and tokenizer
@@ -99,6 +100,7 @@ async function handleSubmit(): Promise<void> {
 
     if (result.success && result.processedText) {
       outputTextarea.value = result.processedText;
+      copyBtn.style.display = 'inline-block';
       showSuccess('Processing complete!');
     } else {
       showError(result.error || 'Processing failed');
@@ -176,6 +178,38 @@ function resetSystemPrompt(): void {
 }
 
 /**
+ * Copy output text to clipboard
+ */
+async function copyToClipboard(): Promise<void> {
+  const text = outputTextarea.value;
+  
+  if (!text) {
+    showError('No text to copy');
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    
+    // Update button text temporarily
+    const originalText = copyBtn.textContent;
+    copyBtn.textContent = '✓ Copied!';
+    copyBtn.style.backgroundColor = '#4caf50';
+    
+    showSuccess('Text copied to clipboard!');
+    
+    // Reset button after 2 seconds
+    setTimeout(() => {
+      copyBtn.textContent = originalText;
+      copyBtn.style.backgroundColor = '';
+    }, 2000);
+  } catch (error) {
+    console.error('Failed to copy:', error);
+    showError('Failed to copy text to clipboard');
+  }
+}
+
+/**
  * Initialize the application
  */
 async function initializeApp(): Promise<void> {
@@ -194,6 +228,7 @@ async function initializeApp(): Promise<void> {
     // Set up event listeners
     submitBtn.addEventListener('click', handleSubmit);
     resetPromptBtn.addEventListener('click', resetSystemPrompt);
+    copyBtn.addEventListener('click', copyToClipboard);
     
     // Allow Enter key in textarea (with Shift) and submit with Ctrl/Cmd+Enter
     inputTextarea.addEventListener('keydown', (e) => {
