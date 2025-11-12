@@ -1,11 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import {
-  AutoModelForCausalLM,
-  AutoTokenizer,
-  env,
-} from "@huggingface/transformers";
+import { useState, useEffect } from "react";
 import {
   processText,
   getDefaultPromptTemplate,
@@ -14,12 +9,12 @@ import {
 import type { OperationType, AppState } from "@/lib/types";
 
 // Model configuration
-const MODEL_ID = "onnx-community/granite-4.0-1b-ONNX-web";
+const MODEL_ID = "phi4-mini:3.8b";
 
 export default function Home() {
   // State management
   const [appState, setAppState] = useState<AppState>({
-    modelLoaded: false,
+    modelLoaded: true, // Ollama is always ready (no loading needed)
     isProcessing: false,
     currentOperation: "rephrase",
   });
@@ -40,56 +35,6 @@ export default function Home() {
     text: string;
     type: "info" | "success" | "error";
   } | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState("");
-
-  // Refs for model and tokenizer
-  const modelRef = useRef<any>(null);
-  const tokenizerRef = useRef<any>(null);
-
-  // Initialize model on component mount
-  useEffect(() => {
-    async function initializeModel() {
-      try {
-        console.log("Configuring environment...");
-        // Configure environment
-        if (env.backends.onnx?.wasm) {
-          env.backends.onnx.wasm.numThreads =
-            navigator.hardwareConcurrency ?? 4;
-        }
-        env.useBrowserCache = true;
-        env.allowRemoteModels = true;
-
-        console.log("Loading model...");
-        setLoadingMessage(
-          "Loading model... This may take 2-3 minutes on first run."
-        );
-
-        tokenizerRef.current = await AutoTokenizer.from_pretrained(MODEL_ID);
-        console.log("Tokenizer loaded");
-
-        modelRef.current = await AutoModelForCausalLM.from_pretrained(
-          MODEL_ID,
-          {
-            dtype: "q4",
-            device: "webgpu",
-          }
-        );
-        console.log("Model loaded");
-
-        setAppState((prev) => ({ ...prev, modelLoaded: true }));
-        setLoadingMessage("");
-        showSuccess("Model loaded successfully! Ready to process text.");
-      } catch (error) {
-        console.error("Error loading model:", error);
-        setLoadingMessage("");
-        showError(
-          "Failed to load model. Please ensure WebGPU is supported in your browser."
-        );
-      }
-    }
-
-    initializeModel();
-  }, []);
 
   // Update system prompt when operation changes
   useEffect(() => {
@@ -121,7 +66,7 @@ export default function Home() {
 
   // Handle submit
   const handleSubmit = async () => {
-    if (!appState.modelLoaded || appState.isProcessing) {
+    if (appState.isProcessing) {
       return;
     }
 
@@ -160,27 +105,23 @@ export default function Home() {
         newVariations.push({ text: "", isStreaming: true });
         setVariations([...newVariations]);
 
-        const result = await processText(
-          modelRef.current,
-          tokenizerRef.current,
-          {
-            text: trimmedInput,
-            operation,
-            customPrompt: customPrompt || undefined,
-            seed: Math.floor(Math.random() * 1000000),
-            targetLanguage: operation.startsWith("translate")
-              ? targetLanguage
-              : undefined,
-            onStream: (partialText: string) => {
-              // Update the streaming variation in real-time
-              newVariations[currentIndex] = {
-                text: partialText,
-                isStreaming: true,
-              };
-              setVariations([...newVariations]);
-            },
-          }
-        );
+        const result = await processText(MODEL_ID, {
+          text: trimmedInput,
+          operation,
+          customPrompt: customPrompt || undefined,
+          seed: Math.floor(Math.random() * 1000000),
+          targetLanguage: operation.startsWith("translate")
+            ? targetLanguage
+            : undefined,
+          onStream: (partialText: string) => {
+            // Update the streaming variation in real-time
+            newVariations[currentIndex] = {
+              text: partialText,
+              isStreaming: true,
+            };
+            setVariations([...newVariations]);
+          },
+        });
 
         if (result.success && result.processedText) {
           newVariations[currentIndex] = {
@@ -207,14 +148,10 @@ export default function Home() {
       if (successfulGenerations.length > 1) {
         showStatus("Ranking generations...");
 
-        const rankingResult = await rankGenerations(
-          modelRef.current,
-          tokenizerRef.current,
-          {
-            task: customPrompt || getDefaultPromptTemplate(operation),
-            generations: successfulGenerations.map((v) => v.text),
-          }
-        );
+        const rankingResult = await rankGenerations(MODEL_ID, {
+          task: customPrompt || getDefaultPromptTemplate(operation),
+          generations: successfulGenerations.map((v) => v.text),
+        });
 
         if (rankingResult.success && rankingResult.ranking) {
           // Reorder variations based on ranking
@@ -271,31 +208,24 @@ export default function Home() {
     <div className="container">
       <h1>AI Text Processing Tool</h1>
 
-      {loadingMessage && (
-        <div className="loading-indicator">
-          <span className="spinner">⟳</span> {loadingMessage}
-        </div>
-      )}
-
-      {!loadingMessage && (
-        <div className="controls">
-          <label htmlFor="operation-select">Operation:</label>
-          <select
-            id="operation-select"
-            value={operation}
-            onChange={(e) => setOperation(e.target.value as OperationType)}
-            disabled={appState.isProcessing}
-          >
-            <optgroup label="Basic Operations">
-              <option value="rephrase">Rephrase (Make Concise)</option>
-              <option value="grammar">Fix Grammar & Punctuation</option>
-            </optgroup>
-            <optgroup label="Translation">
-              <option value="translate">Translate (Custom Language)</option>
-              <option value="translate-pt">Target lang PT</option>
-              <option value="translate-en">Target lang EN</option>
-            </optgroup>
-            {/* 
+      <div className="controls">
+        <label htmlFor="operation-select">Operation:</label>
+        <select
+          id="operation-select"
+          value={operation}
+          onChange={(e) => setOperation(e.target.value as OperationType)}
+          disabled={appState.isProcessing}
+        >
+          <optgroup label="Basic Operations">
+            <option value="rephrase">Rephrase (Make Concise)</option>
+            <option value="grammar">Fix Grammar & Punctuation</option>
+          </optgroup>
+          <optgroup label="Translation">
+            <option value="translate">Translate (Custom Language)</option>
+            <option value="translate-pt">Target lang PT</option>
+            <option value="translate-en">Target lang EN</option>
+          </optgroup>
+          {/* 
           <optgroup label="Clarity & Style">
             <option value="simplify">Simplify (ELI5)</option>
             <option value="expand">Expand & Elaborate</option>
@@ -314,129 +244,124 @@ export default function Home() {
           <optgroup label="Cleanup">
             <option value="remove-filler">Remove Filler Words</option>
           </optgroup> */}
-          </select>
+        </select>
 
-          {operation.startsWith("translate") && (
-            <>
-              <label htmlFor="language-input">Target Language:</label>
-              <input
-                type="text"
-                id="language-input"
-                placeholder="e.g., English, Spanish, French..."
-                value={targetLanguage}
-                onChange={(e) => setTargetLanguage(e.target.value)}
-                disabled={
-                  appState.isProcessing ||
-                  operation === "translate-pt" ||
-                  operation === "translate-en"
-                }
-              />
-            </>
-          )}
+        {operation.startsWith("translate") && (
+          <>
+            <label htmlFor="language-input">Target Language:</label>
+            <input
+              type="text"
+              id="language-input"
+              placeholder="e.g., English, Spanish, French..."
+              value={targetLanguage}
+              onChange={(e) => setTargetLanguage(e.target.value)}
+              disabled={
+                appState.isProcessing ||
+                operation === "translate-pt" ||
+                operation === "translate-en"
+              }
+            />
+          </>
+        )}
 
-          <label htmlFor="variations-input">Variations:</label>
-          <input
-            type="number"
-            id="variations-input"
-            min="1"
-            max="5"
-            value={numVariations}
-            onChange={(e) => setNumVariations(parseInt(e.target.value) || 2)}
+        <label htmlFor="variations-input">Variations:</label>
+        <input
+          type="number"
+          id="variations-input"
+          min="1"
+          max="5"
+          value={numVariations}
+          onChange={(e) => setNumVariations(parseInt(e.target.value) || 2)}
+          disabled={appState.isProcessing}
+        />
+
+        <button
+          onClick={handleSubmit}
+          disabled={appState.isProcessing}
+        >
+          Generate Variations
+        </button>
+      </div>
+
+      <div className="main-layout">
+        <div className="input-section">
+          <label htmlFor="input-text">Input Text</label>
+          <textarea
+            id="input-text"
+            placeholder="Enter your text here..."
+            rows={12}
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
             disabled={appState.isProcessing}
           />
+        </div>
 
+        <div className="variations-section">
+          <h3>Generated Variations</h3>
+          {statusMessage && (
+            <div className={`status-message visible ${statusMessage.type}`}>
+              {statusMessage.text}
+            </div>
+          )}
+          <div className="variations-container">
+            {variations.map((variation, index) => (
+              <div
+                key={index}
+                className={`variation-card ${
+                  variation.error ? "error" : ""
+                } ${variation.isStreaming ? "streaming" : ""}`}
+              >
+                <div className="variation-header">
+                  <span className="variation-label">
+                    {variation.rank !== undefined
+                      ? `#${variation.rank}`
+                      : `Variation ${index + 1}`}
+                    {variation.isStreaming && (
+                      <span className="streaming-indicator"> ⟳</span>
+                    )}
+                  </span>
+                  {!variation.error && !variation.isStreaming && (
+                    <button
+                      className="copy-variation-btn"
+                      onClick={() => handleCopy(variation.text, index)}
+                    >
+                      📋 Copy
+                    </button>
+                  )}
+                </div>
+                <div className="variation-content">
+                  {variation.text ||
+                    (variation.isStreaming ? "Generating..." : "")}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="prompt-editor">
+        <div className="prompt-header">
+          <label htmlFor="system-prompt">
+            System Prompt (Customize how the AI processes text)
+          </label>
           <button
-            onClick={handleSubmit}
-            disabled={!appState.modelLoaded || appState.isProcessing}
+            className="secondary-btn"
+            onClick={handleResetPrompt}
+            disabled={appState.isProcessing}
           >
-            Generate Variations
+            Reset to Default
           </button>
         </div>
-      )}
-
-      {!loadingMessage && (
-        <div className="main-layout">
-          <div className="input-section">
-            <label htmlFor="input-text">Input Text</label>
-            <textarea
-              id="input-text"
-              placeholder="Enter your text here..."
-              rows={12}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={appState.isProcessing}
-            />
-          </div>
-
-          <div className="variations-section">
-            <h3>Generated Variations</h3>
-            {statusMessage && (
-              <div className={`status-message visible ${statusMessage.type}`}>
-                {statusMessage.text}
-              </div>
-            )}
-            <div className="variations-container">
-              {variations.map((variation, index) => (
-                <div
-                  key={index}
-                  className={`variation-card ${
-                    variation.error ? "error" : ""
-                  } ${variation.isStreaming ? "streaming" : ""}`}
-                >
-                  <div className="variation-header">
-                    <span className="variation-label">
-                      {variation.rank !== undefined
-                        ? `#${variation.rank}`
-                        : `Variation ${index + 1}`}
-                      {variation.isStreaming && (
-                        <span className="streaming-indicator"> ⟳</span>
-                      )}
-                    </span>
-                    {!variation.error && !variation.isStreaming && (
-                      <button
-                        className="copy-variation-btn"
-                        onClick={() => handleCopy(variation.text, index)}
-                      >
-                        📋 Copy
-                      </button>
-                    )}
-                  </div>
-                  <div className="variation-content">
-                    {variation.text ||
-                      (variation.isStreaming ? "Generating..." : "")}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!loadingMessage && (
-        <div className="prompt-editor">
-          <div className="prompt-header">
-            <label htmlFor="system-prompt">
-              System Prompt (Customize how the AI processes text)
-            </label>
-            <button
-              className="secondary-btn"
-              onClick={handleResetPrompt}
-              disabled={appState.isProcessing}
-            >
-              Reset to Default
-            </button>
-          </div>
-          <textarea
-            id="system-prompt"
-            placeholder="Enter custom system prompt..."
-            rows={4}
-            value={systemPrompt}
-            onChange={(e) => setSystemPrompt(e.target.value)}
-            disabled={appState.isProcessing}
-          />
-        </div>
-      )}
+        <textarea
+          id="system-prompt"
+          placeholder="Enter custom system prompt..."
+          rows={4}
+          value={systemPrompt}
+          onChange={(e) => setSystemPrompt(e.target.value)}
+          disabled={appState.isProcessing}
+        />
+      </div>
     </div>
   );
 }

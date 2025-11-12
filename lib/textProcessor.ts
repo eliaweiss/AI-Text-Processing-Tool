@@ -1,8 +1,8 @@
 /**
  * Text processing logic with prompts for rephrase and grammar fixing
+ * Now using Ollama API instead of Transformers
  */
 
-import { TextStreamer } from "@huggingface/transformers";
 import type {
   OperationType,
   ProcessRequest,
@@ -14,6 +14,9 @@ import rephrasePrompt from "../prompts/rephrase.md";
 import grammarPrompt from "../prompts/grammar.md";
 import translatePrompt from "../prompts/translate.md";
 import rankPrompt from "../prompts/rank.md";
+
+// Ollama API configuration
+const OLLAMA_API_URL = "http://localhost:11434/api/generate";
 
 /**
  * Get the default prompt template for an operation
@@ -37,25 +40,16 @@ export function getDefaultPromptTemplate(operation: OperationType): string {
 }
 
 /**
- * Process text with the given operation
- * @param model - The loaded model
- * @param tokenizer - The loaded tokenizer
+ * Process text with the given operation using Ollama API
+ * @param model - Model name (e.g., "phi4-mini:3.8b")
  * @param request - Processing request with text and operation type
  * @returns Processing result
  */
 export async function processText(
-  model: any,
-  tokenizer: any,
+  model: string,
   request: ProcessRequest
 ): Promise<ProcessResult> {
   try {
-    if (!model || !tokenizer) {
-      return {
-        success: false,
-        error: "Model or tokenizer not loaded",
-      };
-    }
-
     if (!request.text.trim()) {
       return {
         success: false,
@@ -89,95 +83,96 @@ export async function processText(
       };
     }
 
-    // Create messages for the model
-    const messages = [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ];
-
-    // Apply chat template to format the input
-    const chatInput = tokenizer.apply_chat_template(messages, {
-      add_generation_prompt: true,
-      return_dict: true,
-    });
-
-    // Generate response using the model - dont change this code
-    const generationConfig: any = {
-      ...chatInput,
-      max_new_tokens: 512,
-      do_sample: true,
-      temperature: 1,
-      return_dict_in_generate: true,
-    };
-
-    // Add seed if provided for variation generation
-    if (request.seed !== undefined) {
-      generationConfig.seed = request.seed;
-    }
-    ////////
-
-    console.log("Generating with config:", {
-      // operation: request.operation,
-      // temperature: generationConfig.temperature,
-      // max_new_tokens: generationConfig.max_new_tokens,
-      seed: generationConfig.seed,
-    });
+    console.log("Generating with Ollama...");
     console.log("Prompt being sent:", prompt);
 
-    // Add streaming callback if provided
-    if (request.onStream) {
-      let accumulatedText = "";
-      const streamer = new TextStreamer(tokenizer, {
-        skip_prompt: true,
-        skip_special_tokens: true,
-        callback_function: (text: string) => {
-          // console.log("Streaming chunk:", text);
-          // Accumulate the text
-          accumulatedText += text;
+    // Call Ollama API with streaming
+    const response = await fetch(OLLAMA_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: model,
+        prompt: prompt,
+        stream: true,
+      }),
+    });
 
-          // Stream the accumulated response (clean minimally to avoid breaking partial text)
-          if (request.onStream) {
-            // Send the raw accumulated text for now, we'll clean it at the end
-            request.onStream(accumulatedText);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Ollama API error:", errorText);
+      return {
+        success: false,
+        error: `Ollama API error: ${response.status} - ${errorText || "Check if Ollama is running"}`,
+      };
+    }
+
+    if (!response.body) {
+      return {
+        success: false,
+        error: "No response body from Ollama API",
+      };
+    }
+
+    // Handle streaming response
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let accumulatedText = "";
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        // Decode the chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete JSON lines
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || ""; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.trim()) {
+            try {
+              const json = JSON.parse(line);
+              if (json.response) {
+                accumulatedText += json.response;
+                
+                // Stream the accumulated response
+                if (request.onStream) {
+                  request.onStream(accumulatedText);
+                }
+              }
+
+              // Check if generation is complete
+              if (json.done) {
+                break;
+              }
+            } catch (e) {
+              console.error("Error parsing JSON line:", line, e);
+            }
           }
-        },
-      });
-
-      generationConfig.streamer = streamer;
+        }
+      }
+    } finally {
+      reader.releaseLock();
     }
 
-    const result = await model.generate(generationConfig);
-
-    if (!result || !result.sequences) {
-      console.error("Model generate returned unexpected result:", result);
+    if (!accumulatedText || !accumulatedText.trim()) {
+      console.error("Generated text is empty");
       return {
         success: false,
-        error: "Model generation failed: no sequences returned",
+        error: "Model generation failed: empty response",
       };
     }
 
-    const { sequences } = result;
-
-    // Decode the generated text
-    const response = tokenizer.batch_decode(
-      sequences.slice(null, [chatInput.input_ids.dims[1], null]),
-      { skip_special_tokens: true }
-    )[0];
-
-    if (!response) {
-      console.error("Tokenizer decode returned empty response");
-      return {
-        success: false,
-        error: "Model generation failed: empty response from decoder",
-      };
-    }
-
-    console.log("Raw model response:", response);
+    console.log("Raw model response:", accumulatedText);
 
     // Clean up the response
-    const processedText = cleanResponse(response, request.operation);
+    const processedText = cleanResponse(accumulatedText, request.operation);
 
     if (!processedText || !processedText.trim()) {
       console.error("Cleaned response is empty");
@@ -248,25 +243,16 @@ function cleanResponse(response: string, operation: OperationType): string {
 }
 
 /**
- * Rank multiple generations by quality
- * @param model - The loaded model
- * @param tokenizer - The loaded tokenizer
+ * Rank multiple generations by quality using Ollama API
+ * @param model - Model name (e.g., "phi4-mini:3.8b")
  * @param request - Ranking request with task and generations
  * @returns Ranking result with ordered indices
  */
 export async function rankGenerations(
-  model: any,
-  tokenizer: any,
+  model: string,
   request: RankingRequest
 ): Promise<RankingResult> {
   try {
-    if (!model || !tokenizer) {
-      return {
-        success: false,
-        error: "Model or tokenizer not loaded",
-      };
-    }
-
     if (request.generations.length < 2) {
       // No need to rank if there's only one generation
       return {
@@ -292,51 +278,42 @@ export async function rankGenerations(
 
     console.log("Ranking prompt:", prompt);
 
-    // Create messages for the model
-    const messages = [
-      {
-        role: "user",
-        content: prompt,
+    // Call Ollama API without streaming for ranking
+    const response = await fetch(OLLAMA_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    ];
-
-    // Apply chat template
-    const chatInput = tokenizer.apply_chat_template(messages, {
-      add_generation_prompt: true,
-      return_dict: true,
+      body: JSON.stringify({
+        model: model,
+        prompt: prompt,
+        stream: false,
+      }),
     });
 
-    // Generate ranking
-    const generationConfig: any = {
-      ...chatInput,
-      max_new_tokens: 100,
-      do_sample: false,
-      temperature: 0.1,
-      return_dict_in_generate: true,
-    };
-
-    const result = await model.generate(generationConfig);
-
-    if (!result || !result.sequences) {
+    if (!response.ok) {
+      const errorText = await response.text();
       return {
         success: false,
-        error: "Ranking failed: no sequences returned",
+        error: `Ollama API error: ${response.status} - ${errorText}`,
       };
     }
 
-    const { sequences } = result;
+    const result = await response.json();
+    const responseText = result.response;
 
-    // Decode the generated text
-    const response = tokenizer.batch_decode(
-      sequences.slice(null, [chatInput.input_ids.dims[1], null]),
-      { skip_special_tokens: true }
-    )[0];
+    if (!responseText) {
+      return {
+        success: false,
+        error: "Ranking failed: no response from Ollama",
+      };
+    }
 
-    console.log("Ranking response:", response);
+    console.log("Ranking response:", responseText);
 
     // Extract the ranking list from response
     // Looking for pattern like [B,A,C] or B,A,C
-    const rankingMatch = response.match(/\[?\s*([A-Z](?:\s*,\s*[A-Z])*)\s*\]?/);
+    const rankingMatch = responseText.match(/\[?\s*([A-Z](?:\s*,\s*[A-Z])*)\s*\]?/);
 
     if (!rankingMatch) {
       return {
