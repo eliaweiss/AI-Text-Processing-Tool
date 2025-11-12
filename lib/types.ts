@@ -3,7 +3,7 @@
  */
 
 // Operation types that can be performed on text
-export type OperationType = 'rephrase' | 'grammar' | 'simplify' | 'expand' | 'formal' | 'casual' | 'to-bullets' | 'to-paragraph' | 'remove-filler' | 'translate';
+export type OperationType = 'rephrase' | 'grammar' | 'simplify' | 'expand' | 'formal' | 'casual' | 'to-bullets' | 'to-paragraph' | 'remove-filler' | 'translate' | 'translate-pt' | 'translate-en';
 
 // Application state
 export interface AppState {

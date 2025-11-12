@@ -82,6 +82,15 @@ export default function Home() {
   // Update system prompt when operation changes
   useEffect(() => {
     setSystemPrompt(getDefaultPromptTemplate(operation));
+
+    // Auto-set target language based on operation
+    if (operation === "translate-pt") {
+      setTargetLanguage("Portuguese");
+    } else if (operation === "translate-en") {
+      setTargetLanguage("English");
+    } else if (operation === "translate") {
+      setTargetLanguage("English"); // Default for generic translate
+    }
   }, [operation]);
 
   // Status message functions
@@ -138,8 +147,9 @@ export default function Home() {
             operation,
             customPrompt: customPrompt || undefined,
             seed: i,
-            targetLanguage:
-              operation === "translate" ? targetLanguage : undefined,
+            targetLanguage: operation.startsWith("translate")
+              ? targetLanguage
+              : undefined,
           }
         );
 
@@ -216,7 +226,9 @@ export default function Home() {
             <option value="grammar">Fix Grammar & Punctuation</option>
           </optgroup>
           <optgroup label="Translation">
-            <option value="translate">Translate</option>
+            <option value="translate">Translate (Custom Language)</option>
+            <option value="translate-pt">Target lang PT</option>
+            <option value="translate-en">Target lang EN</option>
           </optgroup>
           {/* 
           <optgroup label="Clarity & Style">
@@ -239,7 +251,7 @@ export default function Home() {
           </optgroup> */}
         </select>
 
-        {operation === "translate" && (
+        {operation.startsWith("translate") && (
           <>
             <label htmlFor="language-input">Target Language:</label>
             <input
@@ -248,7 +260,11 @@ export default function Home() {
               placeholder="e.g., English, Spanish, French..."
               value={targetLanguage}
               onChange={(e) => setTargetLanguage(e.target.value)}
-              disabled={appState.isProcessing}
+              disabled={
+                appState.isProcessing ||
+                operation === "translate-pt" ||
+                operation === "translate-en"
+              }
             />
           </>
         )}

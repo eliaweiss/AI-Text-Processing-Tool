@@ -64,6 +64,18 @@ Cleaned:`,
 
 Text: ${text}
 
+Translation:`,
+
+  'translate-pt': (text: string) => `Translate the following text to Portuguese. Automatically detect the source language. Only output the translated text, nothing else.
+
+Text: ${text}
+
+Translation:`,
+
+  'translate-en': (text: string) => `Translate the following text to English. Automatically detect the source language. Only output the translated text, nothing else.
+
+Text: ${text}
+
 Translation:`
 };
 
@@ -142,6 +154,20 @@ Text: {TEXT}
 
 Translation:`;
     
+    case 'translate-pt':
+      return `Translate the following text to Portuguese. Automatically detect the source language. Only output the translated text, nothing else.
+
+Text: {TEXT}
+
+Translation:`;
+    
+    case 'translate-en':
+      return `Translate the following text to English. Automatically detect the source language. Only output the translated text, nothing else.
+
+Text: {TEXT}
+
+Translation:`;
+    
     default:
       return `Process the following text:
 
@@ -188,7 +214,7 @@ export async function processText(
         .replace('{LANGUAGE}', request.targetLanguage || 'English');
     } else {
       // Use default prompt
-      if (request.operation === 'translate') {
+      if (request.operation === 'translate' || request.operation === 'translate-pt' || request.operation === 'translate-en') {
         const targetLang = request.targetLanguage || 'English';
         prompt = DEFAULT_PROMPTS.translate(request.text, targetLang);
       } else {
@@ -305,6 +331,10 @@ export function getOperationDescription(operation: OperationType): string {
       return 'Removing filler words...';
     case 'translate':
       return 'Translating text...';
+    case 'translate-pt':
+      return 'Translating to Portuguese...';
+    case 'translate-en':
+      return 'Translating to English...';
     default:
       return 'Processing text...';
   }
