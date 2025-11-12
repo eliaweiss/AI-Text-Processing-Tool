@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Text Processing Tool</title>
+    <link rel="stylesheet" href="src/styles/text-processor.css" />
+    <script src="src/main.ts" type="module" defer></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>AI Text Processing Tool</h1>
+      
+      <div id="loading-indicator" class="loading-indicator" style="display: none">
+        <span class="spinner">⟳</span> Loading model...
+      </div>
+      
+      <p class="description">
+        Test the capabilities of in-browser LLM for text manipulation. Enter your text, 
+        select an operation, and click submit to process it.
+      </p>
+
+      <div class="controls">
+        <label for="operation-select">Operation:</label>
+        <select id="operation-select">
+          <option value="rephrase">Rephrase (Make Concise)</option>
+          <option value="grammar">Fix Grammar & Punctuation</option>
+        </select>
+        <button id="submit-btn" disabled>Process Text</button>
+      </div>
+
+      <div class="textareas-container">
+        <div class="textarea-wrapper">
+          <label for="input-text">Input Text</label>
+          <textarea
+            id="input-text"
+            placeholder="Enter your text here..."
+            rows="12"
+          ></textarea>
+        </div>
+
+        <div class="textarea-wrapper">
+          <label for="output-text">Result</label>
+          <textarea
+            id="output-text"
+            placeholder="Processed text will appear here..."
+            rows="12"
+            readonly
+          ></textarea>
+        </div>
+      </div>
+
+      <div id="status-message" class="status-message"></div>
+    </div>
+  </body>
+</html>
+
