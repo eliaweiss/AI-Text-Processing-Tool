@@ -146,7 +146,7 @@ export default function Home() {
             text: trimmedInput,
             operation,
             customPrompt: customPrompt || undefined,
-            seed: i,
+            seed: Math.floor(Math.random() * 1000000),
             targetLanguage: operation.startsWith("translate")
               ? targetLanguage
               : undefined,
