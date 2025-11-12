@@ -32,13 +32,13 @@ let tokenizer: any = null;
 // DOM elements
 const loadingIndicator = document.getElementById('loading-indicator') as HTMLDivElement;
 const inputTextarea = document.getElementById('input-text') as HTMLTextAreaElement;
-const outputTextarea = document.getElementById('output-text') as HTMLTextAreaElement;
 const operationSelect = document.getElementById('operation-select') as HTMLSelectElement;
 const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
 const statusMessage = document.getElementById('status-message') as HTMLDivElement;
 const systemPromptTextarea = document.getElementById('system-prompt') as HTMLTextAreaElement;
 const resetPromptBtn = document.getElementById('reset-prompt-btn') as HTMLButtonElement;
-const copyBtn = document.getElementById('copy-btn') as HTMLButtonElement;
+const variationsInput = document.getElementById('variations-input') as HTMLInputElement;
+const variationsContainer = document.getElementById('variations-container') as HTMLDivElement;
 
 /**
  * Load the model and tokenizer
@@ -67,6 +67,52 @@ async function loadModel(): Promise<boolean> {
 }
 
 /**
+ * Create a variation card element
+ */
+function createVariationCard(index: number, text: string): HTMLDivElement {
+  const card = document.createElement('div');
+  card.className = 'variation-card';
+  card.innerHTML = `
+    <div class="variation-header">
+      <span class="variation-label">Variation ${index}</span>
+      <button class="copy-variation-btn" data-text="${encodeURIComponent(text)}">
+        📋 Copy
+      </button>
+    </div>
+    <div class="variation-content">${text}</div>
+  `;
+  
+  // Add copy button event listener
+  const copyBtn = card.querySelector('.copy-variation-btn') as HTMLButtonElement;
+  copyBtn.addEventListener('click', () => copyVariationToClipboard(copyBtn, text));
+  
+  return card;
+}
+
+/**
+ * Copy variation text to clipboard
+ */
+async function copyVariationToClipboard(button: HTMLButtonElement, text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+    
+    const originalText = button.textContent;
+    button.textContent = '✓ Copied!';
+    button.style.backgroundColor = '#4caf50';
+    button.style.color = '#ffffff';
+    
+    setTimeout(() => {
+      button.textContent = originalText;
+      button.style.backgroundColor = '';
+      button.style.color = '';
+    }, 2000);
+  } catch (error) {
+    console.error('Failed to copy:', error);
+    showError('Failed to copy text to clipboard');
+  }
+}
+
+/**
  * Handle text processing when submit button is clicked
  */
 async function handleSubmit(): Promise<void> {
@@ -80,31 +126,52 @@ async function handleSubmit(): Promise<void> {
     return;
   }
 
+  const numVariations = parseInt(variationsInput.value) || 2;
+  if (numVariations < 1 || numVariations > 5) {
+    showError('Please enter a number between 1 and 5');
+    return;
+  }
+
   appState.isProcessing = true;
   submitBtn.disabled = true;
-  outputTextarea.value = '';
+  variationsContainer.innerHTML = '';
   
   const operation = operationSelect.value as OperationType;
   appState.currentOperation = operation;
   
-  showStatus(getOperationDescription(operation));
+  showStatus(`Generating ${numVariations} variation${numVariations > 1 ? 's' : ''}...`);
 
   try {
     const customPrompt = systemPromptTextarea.value.trim();
     
-    const result = await processText(model, tokenizer, {
-      text: inputText,
-      operation,
-      customPrompt: customPrompt || undefined
-    });
+    // Generate variations one by one
+    for (let i = 0; i < numVariations; i++) {
+      showStatus(`Generating variation ${i + 1} of ${numVariations}...`);
+      
+      const result = await processText(model, tokenizer, {
+        text: inputText,
+        operation,
+        customPrompt: customPrompt || undefined,
+        seed: i
+      });
 
-    if (result.success && result.processedText) {
-      outputTextarea.value = result.processedText;
-      copyBtn.style.display = 'inline-block';
-      showSuccess('Processing complete!');
-    } else {
-      showError(result.error || 'Processing failed');
+      if (result.success && result.processedText) {
+        const card = createVariationCard(i + 1, result.processedText);
+        variationsContainer.appendChild(card);
+      } else {
+        const errorCard = document.createElement('div');
+        errorCard.className = 'variation-card error';
+        errorCard.innerHTML = `
+          <div class="variation-header">
+            <span class="variation-label">Variation ${i + 1}</span>
+          </div>
+          <div class="variation-content">Error: ${result.error || 'Failed to generate'}</div>
+        `;
+        variationsContainer.appendChild(errorCard);
+      }
     }
+    
+    showSuccess(`Generated ${numVariations} variation${numVariations > 1 ? 's' : ''} successfully!`);
   } catch (error) {
     console.error('Processing error:', error);
     showError('An error occurred during processing');
@@ -177,37 +244,6 @@ function resetSystemPrompt(): void {
   showSuccess('System prompt reset to default');
 }
 
-/**
- * Copy output text to clipboard
- */
-async function copyToClipboard(): Promise<void> {
-  const text = outputTextarea.value;
-  
-  if (!text) {
-    showError('No text to copy');
-    return;
-  }
-
-  try {
-    await navigator.clipboard.writeText(text);
-    
-    // Update button text temporarily
-    const originalText = copyBtn.textContent;
-    copyBtn.textContent = '✓ Copied!';
-    copyBtn.style.backgroundColor = '#4caf50';
-    
-    showSuccess('Text copied to clipboard!');
-    
-    // Reset button after 2 seconds
-    setTimeout(() => {
-      copyBtn.textContent = originalText;
-      copyBtn.style.backgroundColor = '';
-    }, 2000);
-  } catch (error) {
-    console.error('Failed to copy:', error);
-    showError('Failed to copy text to clipboard');
-  }
-}
 
 /**
  * Initialize the application
@@ -228,7 +264,6 @@ async function initializeApp(): Promise<void> {
     // Set up event listeners
     submitBtn.addEventListener('click', handleSubmit);
     resetPromptBtn.addEventListener('click', resetSystemPrompt);
-    copyBtn.addEventListener('click', copyToClipboard);
     
     // Allow Enter key in textarea (with Shift) and submit with Ctrl/Cmd+Enter
     inputTextarea.addEventListener('keydown', (e) => {

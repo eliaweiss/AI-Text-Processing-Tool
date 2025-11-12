@@ -17,6 +17,7 @@ export interface ProcessRequest {
   text: string;
   operation: OperationType;
   customPrompt?: string;
+  seed?: number;
 }
 
 // Text processing result

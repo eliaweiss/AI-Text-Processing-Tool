@@ -13,11 +13,12 @@ This project tests whether in-browser Large Language Models can effectively hand
 - **Two Text Processing Operations**:
   - Rephrase text to be more concise
   - Fix grammar and punctuation errors
+- **Multiple Variations**: Generate 1-5 variations with different seeds to see different options
 - **Customizable System Prompts**: Edit the system prompt to customize how the AI processes text
-- **Copy to Clipboard**: Easily copy generated text with one click
+- **Copy to Clipboard**: Easily copy any generated variation with one click
 - **In-Browser Processing**: All text processing happens locally using WebGPU
 - **TypeScript**: Type-safe implementation for better development experience
-- **Modern UI**: Clean, dark-themed interface with responsive design
+- **Modern UI**: Clean, light-themed interface with responsive design
 - **Privacy-First**: No data sent to external servers
 
 ## Requirements
@@ -71,17 +72,19 @@ npm run preview:text
    - Choose "Rephrase (Make Concise)" to make text more concise
    - Choose "Fix Grammar & Punctuation" to correct errors
 
-4. **Customize System Prompt (Optional)**: 
+4. **Set Number of Variations**: Choose how many variations you want to generate (1-5, default is 2).
+
+5. **Customize System Prompt (Optional)**: 
    - Edit the system prompt at the bottom to change how the AI processes text
    - Use `{TEXT}` as a placeholder for the input text
    - Click "Reset to Default" to restore the default prompt
    - The prompt automatically updates when you change the operation
 
-5. **Process**: Click the "Process Text" button or press `Ctrl/Cmd + Enter`.
+6. **Generate**: Click the "Generate Variations" button or press `Ctrl/Cmd + Enter`.
 
-6. **View Results**: The processed text will appear in the "Result" textarea.
+7. **View Results**: Multiple variations will appear on the right side, generated one by one.
 
-7. **Copy Results**: Click the "📋 Copy to Clipboard" button to copy the generated text.
+8. **Copy Results**: Click the "📋 Copy" button on any variation card to copy that specific text.
 
 ## Technical Stack
 
@@ -145,6 +148,20 @@ If results are unsatisfactory, consider switching to a text-focused model like:
 - Phi-3-mini
 - SmolLM
 - Other small text-focused models available in ONNX format
+
+## How Variations Work
+
+The application generates multiple variations by slightly adjusting the model's temperature parameter for each generation. This creates diverse outputs while maintaining quality:
+
+- **Variation 1**: Uses temperature 0.6
+- **Variation 2**: Uses temperature 0.65
+- **Variation 3**: Uses temperature 0.7
+- And so on...
+
+Each variation is generated sequentially, and you can see them appear one by one. This allows you to:
+- Compare different phrasings
+- Choose the best output for your needs
+- See the model's creativity range
 
 ## Tips for Custom Prompts
 

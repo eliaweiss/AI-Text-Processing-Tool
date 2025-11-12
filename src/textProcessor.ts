@@ -98,14 +98,24 @@ export async function processText(
     });
 
     // Generate response using the model
-    const { sequences } = await model.generate({
+    const generationConfig: any = {
       ...chatInput,
       max_new_tokens: 512,
       do_sample: true,
       temperature: 0.7,
       top_p: 0.9,
       return_dict_in_generate: true,
-    });
+    };
+    
+    // Add seed if provided for variation generation
+    if (request.seed !== undefined) {
+      // Note: transformers.js doesn't directly support seed, but we can vary temperature slightly
+      // to create variations. We'll use seed to modify temperature
+      const seedVariation = (request.seed % 10) / 20; // 0 to 0.5
+      generationConfig.temperature = 0.6 + seedVariation;
+    }
+    
+    const { sequences } = await model.generate(generationConfig);
 
     // Decode the generated text
     const response = tokenizer.batch_decode(
