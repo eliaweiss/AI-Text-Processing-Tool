@@ -239,37 +239,3 @@ function cleanResponse(response: string, operation: OperationType): string {
 
   return cleaned;
 }
-
-/**
- * Get a description of the operation
- * @param operation - The operation type
- * @returns Human-readable description
- */
-export function getOperationDescription(operation: OperationType): string {
-  switch (operation) {
-    case "rephrase":
-      return "Making text more concise...";
-    case "grammar":
-      return "Fixing grammar and punctuation...";
-    case "simplify":
-      return "Simplifying text...";
-    case "expand":
-      return "Expanding and elaborating...";
-    case "formal":
-      return "Converting to formal tone...";
-    case "casual":
-      return "Converting to casual tone...";
-    case "to-bullets":
-      return "Converting to bullet points...";
-    case "to-paragraph":
-      return "Converting to paragraph...";
-    case "remove-filler":
-      return "Removing filler words...";
-    case "translate":
-    case "translate-pt":
-    case "translate-en":
-      return "Translating text...";
-    default:
-      return "Processing text...";
-  }
-}

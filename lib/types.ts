@@ -6,13 +6,6 @@
 export type OperationType =
   | "rephrase"
   | "grammar"
-  | "simplify"
-  | "expand"
-  | "formal"
-  | "casual"
-  | "to-bullets"
-  | "to-paragraph"
-  | "remove-filler"
   | "translate"
   | "translate-pt"
   | "translate-en";
