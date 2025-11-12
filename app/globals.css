@@ -66,23 +66,33 @@ h1 {
   margin: 0;
 }
 
-input[type="number"] {
+input[type="number"],
+input[type="text"] {
   padding: 10px 15px;
   border-radius: 5px;
   border: 1px solid #cccccc;
   background-color: #ffffff;
   color: #333333;
   font-size: 14px;
-  width: 70px;
   transition: all 0.2s ease;
   outline: none;
 }
 
-input[type="number"]:hover {
+input[type="number"] {
+  width: 70px;
+}
+
+input[type="text"] {
+  min-width: 150px;
+}
+
+input[type="number"]:hover,
+input[type="text"]:hover {
   border-color: #1976d2;
 }
 
-input[type="number"]:focus {
+input[type="number"]:focus,
+input[type="text"]:focus {
   border-color: #1976d2;
   box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
 }
@@ -182,8 +192,6 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  max-height: 600px;
-  overflow-y: auto;
   padding-right: 5px;
 }
 
@@ -220,6 +228,18 @@ button:disabled {
 .variation-card.error {
   background-color: #ffebee;
   border-color: #f44336;
+}
+
+.variation-card.streaming {
+  background-color: #e3f2fd;
+  border-color: #1976d2;
+}
+
+.streaming-indicator {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  font-size: 14px;
+  color: #1976d2;
 }
 
 .variation-header {
@@ -298,6 +318,7 @@ button:disabled {
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -422,4 +443,3 @@ button:disabled {
   border-color: #1976d2;
   box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
 }
-

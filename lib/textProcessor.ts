@@ -131,6 +131,24 @@ export async function processText(
     });
     console.log("Prompt being sent:", prompt);
 
+    // Add streaming callback if provided
+    if (request.onStream) {
+      const inputLength = chatInput.input_ids.dims[1];
+      generationConfig.callback_function = (output: any) => {
+        // Decode the generated tokens (excluding the input prompt)
+        const generatedTokens = output.slice(null, [inputLength, null]);
+        const partialText = tokenizer.batch_decode(generatedTokens, {
+          skip_special_tokens: true,
+        })[0];
+
+        // Clean and stream the partial response
+        const cleanedPartial = cleanResponse(partialText, request.operation);
+        if (cleanedPartial && request.onStream) {
+          request.onStream(cleanedPartial);
+        }
+      };
+    }
+
     const result = await model.generate(generationConfig);
 
     if (!result || !result.sequences) {

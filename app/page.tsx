@@ -25,7 +25,7 @@ export default function Home() {
   const [targetLanguage, setTargetLanguage] = useState("English");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [variations, setVariations] = useState<
-    Array<{ text: string; error?: boolean }>
+    Array<{ text: string; error?: boolean; isStreaming?: boolean }>
   >([]);
   const [statusMessage, setStatusMessage] = useState<{
     text: string;
@@ -43,7 +43,10 @@ export default function Home() {
       try {
         console.log("Configuring environment...");
         // Configure environment
-        env.backends.onnx.wasm.numThreads = navigator.hardwareConcurrency ?? 4;
+        if (env.backends.onnx?.wasm) {
+          env.backends.onnx.wasm.numThreads =
+            navigator.hardwareConcurrency ?? 4;
+        }
         env.useBrowserCache = true;
         env.allowRemoteModels = true;
 
@@ -133,11 +136,20 @@ export default function Home() {
 
     try {
       const customPrompt = systemPrompt.trim();
-      const newVariations: Array<{ text: string; error?: boolean }> = [];
+      const newVariations: Array<{
+        text: string;
+        error?: boolean;
+        isStreaming?: boolean;
+      }> = [];
 
       // Generate variations one by one
       for (let i = 0; i < numVariations; i++) {
         showStatus(`Generating variation ${i + 1} of ${numVariations}...`);
+
+        // Add a placeholder for the current streaming variation
+        const currentIndex = i;
+        newVariations.push({ text: "", isStreaming: true });
+        setVariations([...newVariations]);
 
         const result = await processText(
           modelRef.current,
@@ -150,18 +162,30 @@ export default function Home() {
             targetLanguage: operation.startsWith("translate")
               ? targetLanguage
               : undefined,
+            onStream: (partialText: string) => {
+              // Update the streaming variation in real-time
+              newVariations[currentIndex] = {
+                text: partialText,
+                isStreaming: true,
+              };
+              setVariations([...newVariations]);
+            },
           }
         );
 
         if (result.success && result.processedText) {
-          newVariations.push({ text: result.processedText });
+          newVariations[currentIndex] = {
+            text: result.processedText,
+            isStreaming: false,
+          };
         } else {
           console.error("Generation failed:", result.error);
           const errorMessage = result.error || "Failed to generate";
-          newVariations.push({
+          newVariations[currentIndex] = {
             text: errorMessage,
             error: true,
-          });
+            isStreaming: false,
+          };
           // Also show error in status
           showError(errorMessage);
         }
@@ -312,11 +336,18 @@ export default function Home() {
             {variations.map((variation, index) => (
               <div
                 key={index}
-                className={`variation-card ${variation.error ? "error" : ""}`}
+                className={`variation-card ${variation.error ? "error" : ""} ${
+                  variation.isStreaming ? "streaming" : ""
+                }`}
               >
                 <div className="variation-header">
-                  <span className="variation-label">Variation {index + 1}</span>
-                  {!variation.error && (
+                  <span className="variation-label">
+                    Variation {index + 1}
+                    {variation.isStreaming && (
+                      <span className="streaming-indicator"> ⟳</span>
+                    )}
+                  </span>
+                  {!variation.error && !variation.isStreaming && (
                     <button
                       className="copy-variation-btn"
                       onClick={() => handleCopy(variation.text, index)}
@@ -325,7 +356,10 @@ export default function Home() {
                     </button>
                   )}
                 </div>
-                <div className="variation-content">{variation.text}</div>
+                <div className="variation-content">
+                  {variation.text ||
+                    (variation.isStreaming ? "Generating..." : "")}
+                </div>
               </div>
             ))}
           </div>

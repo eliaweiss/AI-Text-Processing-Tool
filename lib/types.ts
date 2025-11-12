@@ -3,7 +3,19 @@
  */
 
 // Operation types that can be performed on text
-export type OperationType = 'rephrase' | 'grammar' | 'simplify' | 'expand' | 'formal' | 'casual' | 'to-bullets' | 'to-paragraph' | 'remove-filler' | 'translate' | 'translate-pt' | 'translate-en';
+export type OperationType =
+  | "rephrase"
+  | "grammar"
+  | "simplify"
+  | "expand"
+  | "formal"
+  | "casual"
+  | "to-bullets"
+  | "to-paragraph"
+  | "remove-filler"
+  | "translate"
+  | "translate-pt"
+  | "translate-en";
 
 // Application state
 export interface AppState {
@@ -19,6 +31,7 @@ export interface ProcessRequest {
   customPrompt?: string;
   seed?: number;
   targetLanguage?: string;
+  onStream?: (partialText: string) => void;
 }
 
 // Text processing result
@@ -34,4 +47,3 @@ export interface ModelConfig {
   dtype: string;
   device: string;
 }
-
