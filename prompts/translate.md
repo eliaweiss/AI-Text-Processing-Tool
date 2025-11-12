@@ -10,7 +10,11 @@ important instructions:
 
 <user-instruction>
 Translate and the following text from its current language to {LANGUAGE}. 
-Text to translate: {TEXT}
+Text to translate: 
 </user-instruction>
+
+<text-to-translate>
+{TEXT}
+</text-to-translate>
 
 
