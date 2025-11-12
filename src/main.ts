@@ -7,7 +7,7 @@ import {
   AutoTokenizer,
   env,
 } from '@huggingface/transformers';
-import { processText, getOperationDescription } from './textProcessor';
+import { processText, getOperationDescription, getDefaultPromptTemplate } from './textProcessor';
 import type { OperationType, AppState } from './types';
 
 // Model configuration
@@ -36,6 +36,8 @@ const outputTextarea = document.getElementById('output-text') as HTMLTextAreaEle
 const operationSelect = document.getElementById('operation-select') as HTMLSelectElement;
 const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
 const statusMessage = document.getElementById('status-message') as HTMLDivElement;
+const systemPromptTextarea = document.getElementById('system-prompt') as HTMLTextAreaElement;
+const resetPromptBtn = document.getElementById('reset-prompt-btn') as HTMLButtonElement;
 
 /**
  * Load the model and tokenizer
@@ -87,9 +89,12 @@ async function handleSubmit(): Promise<void> {
   showStatus(getOperationDescription(operation));
 
   try {
+    const customPrompt = systemPromptTextarea.value.trim();
+    
     const result = await processText(model, tokenizer, {
       text: inputText,
-      operation
+      operation,
+      customPrompt: customPrompt || undefined
     });
 
     if (result.success && result.processedText) {
@@ -155,10 +160,29 @@ function showError(message: string): void {
 }
 
 /**
+ * Update system prompt to default for selected operation
+ */
+function updateSystemPrompt(): void {
+  const operation = operationSelect.value as OperationType;
+  systemPromptTextarea.value = getDefaultPromptTemplate(operation);
+}
+
+/**
+ * Reset system prompt to default
+ */
+function resetSystemPrompt(): void {
+  updateSystemPrompt();
+  showSuccess('System prompt reset to default');
+}
+
+/**
  * Initialize the application
  */
 async function initializeApp(): Promise<void> {
   console.log('Initializing application...');
+  
+  // Set initial system prompt
+  updateSystemPrompt();
   
   const success = await loadModel();
   hideLoading();
@@ -169,6 +193,7 @@ async function initializeApp(): Promise<void> {
     
     // Set up event listeners
     submitBtn.addEventListener('click', handleSubmit);
+    resetPromptBtn.addEventListener('click', resetSystemPrompt);
     
     // Allow Enter key in textarea (with Shift) and submit with Ctrl/Cmd+Enter
     inputTextarea.addEventListener('keydown', (e) => {
@@ -178,9 +203,10 @@ async function initializeApp(): Promise<void> {
       }
     });
     
-    // Update operation when dropdown changes
+    // Update operation and system prompt when dropdown changes
     operationSelect.addEventListener('change', () => {
       appState.currentOperation = operationSelect.value as OperationType;
+      updateSystemPrompt();
     });
     
   } else {

@@ -16,6 +16,7 @@ export interface AppState {
 export interface ProcessRequest {
   text: string;
   operation: OperationType;
+  customPrompt?: string;
 }
 
 // Text processing result

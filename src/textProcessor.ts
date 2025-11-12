@@ -4,8 +4,8 @@
 
 import type { OperationType, ProcessRequest, ProcessResult } from './types';
 
-// Prompt templates for different operations
-const PROMPTS = {
+// Default prompt templates for different operations
+export const DEFAULT_PROMPTS = {
   rephrase: (text: string) => `Rewrite the following text to be more concise while preserving its meaning. Only output the rewritten text, nothing else.
 
 Text: ${text}
@@ -18,6 +18,32 @@ Text: ${text}
 
 Corrected:`
 };
+
+/**
+ * Get the default prompt template for an operation
+ */
+export function getDefaultPromptTemplate(operation: OperationType): string {
+  switch (operation) {
+    case 'rephrase':
+      return `Rewrite the following text to be more concise while preserving its meaning. Only output the rewritten text, nothing else.
+
+Text: {TEXT}
+
+Rewritten:`;
+    case 'grammar':
+      return `Fix only the grammatical and punctuation errors in the following text. Keep the original wording and sentence structure as much as possible. Only output the corrected text, nothing else.
+
+Text: {TEXT}
+
+Corrected:`;
+    default:
+      return `Process the following text:
+
+Text: {TEXT}
+
+Result:`;
+  }
+}
 
 /**
  * Process text with the given operation
@@ -47,7 +73,15 @@ export async function processText(
     }
 
     // Get the appropriate prompt for the operation
-    const prompt = PROMPTS[request.operation](request.text);
+    let prompt: string;
+    
+    if (request.customPrompt && request.customPrompt.trim()) {
+      // Use custom prompt, replacing {TEXT} placeholder with actual text
+      prompt = request.customPrompt.replace('{TEXT}', request.text);
+    } else {
+      // Use default prompt
+      prompt = DEFAULT_PROMPTS[request.operation](request.text);
+    }
 
     // Create messages for the model
     const messages = [
