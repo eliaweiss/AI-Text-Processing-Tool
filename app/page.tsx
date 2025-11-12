@@ -1,28 +1,36 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { AutoModelForCausalLM, AutoTokenizer, env } from '@huggingface/transformers';
-import { processText, getDefaultPromptTemplate } from '@/lib/textProcessor';
-import type { OperationType, AppState } from '@/lib/types';
+import { useState, useEffect, useRef } from "react";
+import {
+  AutoModelForCausalLM,
+  AutoTokenizer,
+  env,
+} from "@huggingface/transformers";
+import { processText, getDefaultPromptTemplate } from "@/lib/textProcessor";
+import type { OperationType, AppState } from "@/lib/types";
 
 // Model configuration
-const MODEL_ID = 'onnx-community/granite-4.0-1b-ONNX-web';
+const MODEL_ID = "onnx-community/granite-4.0-1b-ONNX-web";
 
 export default function Home() {
   // State management
   const [appState, setAppState] = useState<AppState>({
     modelLoaded: false,
     isProcessing: false,
-    currentOperation: 'rephrase'
+    currentOperation: "rephrase",
   });
-  const [inputText, setInputText] = useState('');
-  const [operation, setOperation] = useState<OperationType>('rephrase');
+  const [inputText, setInputText] = useState("");
+  const [operation, setOperation] = useState<OperationType>("rephrase");
   const [numVariations, setNumVariations] = useState(2);
-  const [systemPrompt, setSystemPrompt] = useState('');
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [variations, setVariations] = useState<Array<{ text: string; error?: boolean }>>([]);
-  const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'info' | 'success' | 'error' } | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState("");
+  const [variations, setVariations] = useState<
+    Array<{ text: string; error?: boolean }>
+  >([]);
+  const [statusMessage, setStatusMessage] = useState<{
+    text: string;
+    type: "info" | "success" | "error";
+  } | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState("");
 
   // Refs for model and tokenizer
   const modelRef = useRef<any>(null);
@@ -32,31 +40,38 @@ export default function Home() {
   useEffect(() => {
     async function initializeModel() {
       try {
-        console.log('Configuring environment...');
+        console.log("Configuring environment...");
         // Configure environment
         env.backends.onnx.wasm.numThreads = navigator.hardwareConcurrency ?? 4;
         env.useBrowserCache = true;
         env.allowRemoteModels = true;
 
-        console.log('Loading model...');
-        setLoadingMessage('Loading model... This may take 2-3 minutes on first run.');
+        console.log("Loading model...");
+        setLoadingMessage(
+          "Loading model... This may take 2-3 minutes on first run."
+        );
 
         tokenizerRef.current = await AutoTokenizer.from_pretrained(MODEL_ID);
-        console.log('Tokenizer loaded');
+        console.log("Tokenizer loaded");
 
-        modelRef.current = await AutoModelForCausalLM.from_pretrained(MODEL_ID, {
-          dtype: 'q4',
-          device: 'webgpu',
-        });
-        console.log('Model loaded');
+        modelRef.current = await AutoModelForCausalLM.from_pretrained(
+          MODEL_ID,
+          {
+            dtype: "q4",
+            device: "webgpu",
+          }
+        );
+        console.log("Model loaded");
 
-        setAppState(prev => ({ ...prev, modelLoaded: true }));
-        setLoadingMessage('');
-        showSuccess('Model loaded successfully! Ready to process text.');
+        setAppState((prev) => ({ ...prev, modelLoaded: true }));
+        setLoadingMessage("");
+        showSuccess("Model loaded successfully! Ready to process text.");
       } catch (error) {
-        console.error('Error loading model:', error);
-        setLoadingMessage('');
-        showError('Failed to load model. Please ensure WebGPU is supported in your browser.');
+        console.error("Error loading model:", error);
+        setLoadingMessage("");
+        showError(
+          "Failed to load model. Please ensure WebGPU is supported in your browser."
+        );
       }
     }
 
@@ -70,16 +85,16 @@ export default function Home() {
 
   // Status message functions
   const showStatus = (text: string) => {
-    setStatusMessage({ text, type: 'info' });
+    setStatusMessage({ text, type: "info" });
   };
 
   const showSuccess = (text: string) => {
-    setStatusMessage({ text, type: 'success' });
+    setStatusMessage({ text, type: "success" });
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
   const showError = (text: string) => {
-    setStatusMessage({ text, type: 'error' });
+    setStatusMessage({ text, type: "error" });
   };
 
   // Handle submit
@@ -90,19 +105,21 @@ export default function Home() {
 
     const trimmedInput = inputText.trim();
     if (!trimmedInput) {
-      showError('Please enter some text to process');
+      showError("Please enter some text to process");
       return;
     }
 
     if (numVariations < 1 || numVariations > 5) {
-      showError('Please enter a number between 1 and 5');
+      showError("Please enter a number between 1 and 5");
       return;
     }
 
-    setAppState(prev => ({ ...prev, isProcessing: true }));
+    setAppState((prev) => ({ ...prev, isProcessing: true }));
     setVariations([]);
 
-    showStatus(`Generating ${numVariations} variation${numVariations > 1 ? 's' : ''}...`);
+    showStatus(
+      `Generating ${numVariations} variation${numVariations > 1 ? "s" : ""}...`
+    );
 
     try {
       const customPrompt = systemPrompt.trim();
@@ -112,28 +129,39 @@ export default function Home() {
       for (let i = 0; i < numVariations; i++) {
         showStatus(`Generating variation ${i + 1} of ${numVariations}...`);
 
-        const result = await processText(modelRef.current, tokenizerRef.current, {
-          text: trimmedInput,
-          operation,
-          customPrompt: customPrompt || undefined,
-          seed: i
-        });
+        const result = await processText(
+          modelRef.current,
+          tokenizerRef.current,
+          {
+            text: trimmedInput,
+            operation,
+            customPrompt: customPrompt || undefined,
+            seed: i,
+          }
+        );
 
         if (result.success && result.processedText) {
           newVariations.push({ text: result.processedText });
         } else {
-          newVariations.push({ text: result.error || 'Failed to generate', error: true });
+          newVariations.push({
+            text: result.error || "Failed to generate",
+            error: true,
+          });
         }
 
         setVariations([...newVariations]);
       }
 
-      showSuccess(`Generated ${numVariations} variation${numVariations > 1 ? 's' : ''} successfully!`);
+      showSuccess(
+        `Generated ${numVariations} variation${
+          numVariations > 1 ? "s" : ""
+        } successfully!`
+      );
     } catch (error) {
-      console.error('Processing error:', error);
-      showError('An error occurred during processing');
+      console.error("Processing error:", error);
+      showError("An error occurred during processing");
     } finally {
-      setAppState(prev => ({ ...prev, isProcessing: false }));
+      setAppState((prev) => ({ ...prev, isProcessing: false }));
     }
   };
 
@@ -143,20 +171,20 @@ export default function Home() {
       await navigator.clipboard.writeText(text);
       // You could add a temporary "Copied!" indicator here
     } catch (error) {
-      console.error('Failed to copy:', error);
-      showError('Failed to copy text to clipboard');
+      console.error("Failed to copy:", error);
+      showError("Failed to copy text to clipboard");
     }
   };
 
   // Handle reset prompt
   const handleResetPrompt = () => {
     setSystemPrompt(getDefaultPromptTemplate(operation));
-    showSuccess('System prompt reset to default');
+    showSuccess("System prompt reset to default");
   };
 
   // Handle keyboard shortcuts
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit();
     }
@@ -185,38 +213,25 @@ export default function Home() {
             <option value="grammar">Fix Grammar & Punctuation</option>
           </optgroup>
 
-          {showAdvanced && (
-            <>
-              <optgroup label="Clarity & Style">
-                <option value="simplify">Simplify (ELI5)</option>
-                <option value="expand">Expand & Elaborate</option>
-              </optgroup>
+          <optgroup label="Clarity & Style">
+            <option value="simplify">Simplify (ELI5)</option>
+            <option value="expand">Expand & Elaborate</option>
+          </optgroup>
 
-              <optgroup label="Tone Conversion">
-                <option value="formal">Make Formal</option>
-                <option value="casual">Make Casual</option>
-              </optgroup>
+          <optgroup label="Tone Conversion">
+            <option value="formal">Make Formal</option>
+            <option value="casual">Make Casual</option>
+          </optgroup>
 
-              <optgroup label="Format Conversion">
-                <option value="to-bullets">Convert to Bullet Points</option>
-                <option value="to-paragraph">Convert to Paragraph</option>
-              </optgroup>
+          <optgroup label="Format Conversion">
+            <option value="to-bullets">Convert to Bullet Points</option>
+            <option value="to-paragraph">Convert to Paragraph</option>
+          </optgroup>
 
-              <optgroup label="Cleanup">
-                <option value="remove-filler">Remove Filler Words</option>
-              </optgroup>
-            </>
-          )}
+          <optgroup label="Cleanup">
+            <option value="remove-filler">Remove Filler Words</option>
+          </optgroup>
         </select>
-
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={showAdvanced}
-            onChange={(e) => setShowAdvanced(e.target.checked)}
-          />
-          Advanced Options
-        </label>
 
         <label htmlFor="variations-input">Variations:</label>
         <input
@@ -257,7 +272,7 @@ export default function Home() {
             {variations.map((variation, index) => (
               <div
                 key={index}
-                className={`variation-card ${variation.error ? 'error' : ''}`}
+                className={`variation-card ${variation.error ? "error" : ""}`}
               >
                 <div className="variation-header">
                   <span className="variation-label">Variation {index + 1}</span>
@@ -308,4 +323,3 @@ export default function Home() {
     </div>
   );
 }
-
