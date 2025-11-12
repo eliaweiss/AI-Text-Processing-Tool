@@ -6,7 +6,11 @@ import {
   AutoTokenizer,
   env,
 } from "@huggingface/transformers";
-import { processText, getDefaultPromptTemplate } from "@/lib/textProcessor";
+import {
+  processText,
+  getDefaultPromptTemplate,
+  rankGenerations,
+} from "@/lib/textProcessor";
 import type { OperationType, AppState } from "@/lib/types";
 
 // Model configuration
@@ -25,7 +29,12 @@ export default function Home() {
   const [targetLanguage, setTargetLanguage] = useState("English");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [variations, setVariations] = useState<
-    Array<{ text: string; error?: boolean; isStreaming?: boolean }>
+    Array<{
+      text: string;
+      error?: boolean;
+      isStreaming?: boolean;
+      rank?: number;
+    }>
   >([]);
   const [statusMessage, setStatusMessage] = useState<{
     text: string;
@@ -193,6 +202,33 @@ export default function Home() {
         setVariations([...newVariations]);
       }
 
+      // Rank the generations
+      const successfulGenerations = newVariations.filter((v) => !v.error);
+      if (successfulGenerations.length > 1) {
+        showStatus("Ranking generations...");
+
+        const rankingResult = await rankGenerations(
+          modelRef.current,
+          tokenizerRef.current,
+          {
+            task: customPrompt || getDefaultPromptTemplate(operation),
+            generations: successfulGenerations.map((v) => v.text),
+          }
+        );
+
+        if (rankingResult.success && rankingResult.ranking) {
+          // Reorder variations based on ranking
+          const rankedVariations = rankingResult.ranking.map(
+            (originalIndex, newRank) => ({
+              ...successfulGenerations[originalIndex],
+              rank: newRank + 1, // 1-indexed rank for display
+            })
+          );
+
+          setVariations(rankedVariations);
+        }
+      }
+
       showSuccess(
         `Generated ${numVariations} variation${
           numVariations > 1 ? "s" : ""
@@ -342,7 +378,9 @@ export default function Home() {
               >
                 <div className="variation-header">
                   <span className="variation-label">
-                    Variation {index + 1}
+                    {variation.rank !== undefined
+                      ? `#${variation.rank}`
+                      : `Variation ${index + 1}`}
                     {variation.isStreaming && (
                       <span className="streaming-indicator"> ⟳</span>
                     )}

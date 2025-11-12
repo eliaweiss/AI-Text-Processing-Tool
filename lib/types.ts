@@ -34,6 +34,19 @@ export interface ProcessResult {
   error?: string;
 }
 
+// Ranking request
+export interface RankingRequest {
+  task: string;
+  generations: string[];
+}
+
+// Ranking result
+export interface RankingResult {
+  success: boolean;
+  ranking?: number[]; // Array of indices in ranked order (best to worst)
+  error?: string;
+}
+
 // Model configuration
 export interface ModelConfig {
   modelId: string;

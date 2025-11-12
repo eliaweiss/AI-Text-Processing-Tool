@@ -3,10 +3,17 @@
  */
 
 import { TextStreamer } from "@huggingface/transformers";
-import type { OperationType, ProcessRequest, ProcessResult } from "./types";
+import type {
+  OperationType,
+  ProcessRequest,
+  ProcessResult,
+  RankingRequest,
+  RankingResult,
+} from "./types";
 import rephrasePrompt from "../prompts/rephrase.md";
 import grammarPrompt from "../prompts/grammar.md";
 import translatePrompt from "../prompts/translate.md";
+import rankPrompt from "../prompts/rank.md";
 
 /**
  * Get the default prompt template for an operation
@@ -238,4 +245,134 @@ function cleanResponse(response: string, operation: OperationType): string {
   cleaned = cleaned.replace(/`([^`]+)`/g, "$1").trim();
 
   return cleaned;
+}
+
+/**
+ * Rank multiple generations by quality
+ * @param model - The loaded model
+ * @param tokenizer - The loaded tokenizer
+ * @param request - Ranking request with task and generations
+ * @returns Ranking result with ordered indices
+ */
+export async function rankGenerations(
+  model: any,
+  tokenizer: any,
+  request: RankingRequest
+): Promise<RankingResult> {
+  try {
+    if (!model || !tokenizer) {
+      return {
+        success: false,
+        error: "Model or tokenizer not loaded",
+      };
+    }
+
+    if (request.generations.length < 2) {
+      // No need to rank if there's only one generation
+      return {
+        success: true,
+        ranking: [0],
+      };
+    }
+
+    // Create letter labels (A, B, C, ...)
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    // Format generations in XML
+    let generationsXml = "";
+    request.generations.forEach((gen, index) => {
+      const letter = letters[index];
+      generationsXml += `<${letter}>\n${gen}\n</${letter}>\n\n`;
+    });
+
+    // Create the ranking prompt
+    const prompt = rankPrompt
+      .replaceAll("{TASK}", request.task)
+      .replaceAll("{GENERATIONS}", generationsXml.trim());
+
+    console.log("Ranking prompt:", prompt);
+
+    // Create messages for the model
+    const messages = [
+      {
+        role: "user",
+        content: prompt,
+      },
+    ];
+
+    // Apply chat template
+    const chatInput = tokenizer.apply_chat_template(messages, {
+      add_generation_prompt: true,
+      return_dict: true,
+    });
+
+    // Generate ranking
+    const generationConfig: any = {
+      ...chatInput,
+      max_new_tokens: 100,
+      do_sample: false,
+      temperature: 0.1,
+      return_dict_in_generate: true,
+    };
+
+    const result = await model.generate(generationConfig);
+
+    if (!result || !result.sequences) {
+      return {
+        success: false,
+        error: "Ranking failed: no sequences returned",
+      };
+    }
+
+    const { sequences } = result;
+
+    // Decode the generated text
+    const response = tokenizer.batch_decode(
+      sequences.slice(null, [chatInput.input_ids.dims[1], null]),
+      { skip_special_tokens: true }
+    )[0];
+
+    console.log("Ranking response:", response);
+
+    // Extract the ranking list from response
+    // Looking for pattern like [B,A,C] or B,A,C
+    const rankingMatch = response.match(/\[?\s*([A-Z](?:\s*,\s*[A-Z])*)\s*\]?/);
+
+    if (!rankingMatch) {
+      return {
+        success: false,
+        error: "Could not extract ranking from response",
+      };
+    }
+
+    // Parse the letters into indices
+    const rankedLetters = rankingMatch[1].split(/\s*,\s*/);
+    const ranking: number[] = [];
+
+    for (const letter of rankedLetters) {
+      const index = letters.indexOf(letter.trim());
+      if (index >= 0 && index < request.generations.length) {
+        ranking.push(index);
+      }
+    }
+
+    // Validate we got all indices
+    if (ranking.length !== request.generations.length) {
+      return {
+        success: false,
+        error: `Incomplete ranking: expected ${request.generations.length} items, got ${ranking.length}`,
+      };
+    }
+
+    return {
+      success: true,
+      ranking,
+    };
+  } catch (error) {
+    console.error("Error ranking generations:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
 }
