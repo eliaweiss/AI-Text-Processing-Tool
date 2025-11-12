@@ -2,6 +2,7 @@
  * Text processing logic with prompts for rephrase and grammar fixing
  */
 
+import { TextStreamer } from "@huggingface/transformers";
 import type { OperationType, ProcessRequest, ProcessResult } from "./types";
 
 /**
@@ -133,20 +134,24 @@ export async function processText(
 
     // Add streaming callback if provided
     if (request.onStream) {
-      const inputLength = chatInput.input_ids.dims[1];
-      generationConfig.callback_function = (output: any) => {
-        // Decode the generated tokens (excluding the input prompt)
-        const generatedTokens = output.slice(null, [inputLength, null]);
-        const partialText = tokenizer.batch_decode(generatedTokens, {
-          skip_special_tokens: true,
-        })[0];
+      let accumulatedText = "";
+      const streamer = new TextStreamer(tokenizer, {
+        skip_prompt: true,
+        skip_special_tokens: true,
+        callback_function: (text: string) => {
+          console.log("Streaming chunk:", text);
+          // Accumulate the text
+          accumulatedText += text;
 
-        // Clean and stream the partial response
-        const cleanedPartial = cleanResponse(partialText, request.operation);
-        if (cleanedPartial && request.onStream) {
-          request.onStream(cleanedPartial);
-        }
-      };
+          // Stream the accumulated response (clean minimally to avoid breaking partial text)
+          if (request.onStream) {
+            // Send the raw accumulated text for now, we'll clean it at the end
+            request.onStream(accumulatedText);
+          }
+        },
+      });
+
+      generationConfig.streamer = streamer;
     }
 
     const result = await model.generate(generationConfig);
