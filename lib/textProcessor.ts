@@ -4,93 +4,6 @@
 
 import type { OperationType, ProcessRequest, ProcessResult } from "./types";
 
-// Default prompt templates for different operations
-export const DEFAULT_PROMPTS: Record<
-  string,
-  (text: string, ...args: any[]) => string
-> = {
-  rephrase: (
-    text: string
-  ) => `Rewrite the following text to be more concise while preserving its meaning. Only output the rewritten text, nothing else.
-
-Text: ${text}
-
-Rewritten:`,
-
-  grammar: (
-    text: string
-  ) => `Fix only the grammatical and punctuation errors in the following text. Keep the original wording and sentence structure as much as possible. Only output the corrected text, nothing else.
-
-Text: ${text}
-
-Corrected:`,
-
-  simplify: (
-    text: string
-  ) => `Rewrite the following text to be simpler and easier to understand. Use simpler words and shorter sentences as if explaining to a 10-year-old. Only output the simplified text, nothing else.
-
-Text: ${text}
-
-Simplified:`,
-
-  expand: (
-    text: string
-  ) => `Expand and elaborate on the following text. Add more detail, context, and explanations while keeping the same meaning. Only output the expanded text, nothing else.
-
-Text: ${text}
-
-Expanded:`,
-
-  formal: (
-    text: string
-  ) => `Rewrite the following text in a formal and professional tone. Remove casual language, slang, and contractions. Only output the formal version, nothing else.
-
-Text: ${text}
-
-Formal version:`,
-
-  casual: (
-    text: string
-  ) => `Rewrite the following text in a casual and conversational tone. Make it friendly and approachable. Only output the casual version, nothing else.
-
-Text: ${text}
-
-Casual version:`,
-
-  "to-bullets": (
-    text: string
-  ) => `Convert the following text into clear, concise bullet points. Each bullet should be a separate key point. Only output the bullet points, nothing else.
-
-Text: ${text}
-
-Bullet points:`,
-
-  "to-paragraph": (
-    text: string
-  ) => `Convert the following bullet points into a well-flowing paragraph. Connect the ideas smoothly. Only output the paragraph, nothing else.
-
-Text: ${text}
-
-Paragraph:`,
-
-  "remove-filler": (
-    text: string
-  ) => `Remove all filler words and phrases from the following text (like "um", "like", "basically", "actually", "you know", etc.). Keep the meaning intact. Only output the cleaned text, nothing else.
-
-Text: ${text}
-
-Cleaned:`,
-
-  translate: (
-    text: string,
-    targetLanguage: string = "English"
-  ) => `You are a translator. Translate the following text from its current language to ${targetLanguage}. Output ONLY the translated text with no labels or explanations.
-
-Text to translate: ${text}
-
-${targetLanguage} translation:`,
-};
-
 /**
  * Get the default prompt template for an operation
  */
@@ -165,20 +78,11 @@ export async function processText(
           .replace("{TEXT}", request.text)
           .replace("{LANGUAGE}", request.targetLanguage || "English");
       } else {
-        // Use default prompt
-        if (request.operation.startsWith("translate")) {
-          const targetLang = request.targetLanguage || "English";
-          prompt = DEFAULT_PROMPTS.translate(request.text, targetLang);
-        } else {
-          const promptFn = DEFAULT_PROMPTS[request.operation];
-          if (!promptFn) {
-            return {
-              success: false,
-              error: `Unknown operation: ${request.operation}`,
-            };
-          }
-          prompt = promptFn(request.text);
-        }
+        // Use default prompt template
+        const template = getDefaultPromptTemplate(request.operation);
+        prompt = template
+          .replace("{TEXT}", request.text)
+          .replace("{LANGUAGE}", request.targetLanguage || "English");
       }
     } catch (error) {
       console.error("Error generating prompt:", error);
