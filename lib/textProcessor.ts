@@ -63,15 +63,15 @@ export async function processText(
       if (request.customPrompt && request.customPrompt.trim()) {
         // Use custom prompt, replacing placeholders
         prompt = request.customPrompt
-          .replace("{TEXT}", request.text)
-          .replace("{LANGUAGE}", request.targetLanguage || "English");
+          .replaceAll("{TEXT}", request.text)
+          .replaceAll("{LANGUAGE}", request.targetLanguage || "English");
       } else {
         // Use default prompt template
-        const template = getDefaultPromptTemplate(request.operation);
-        prompt = template
-          .replace("{TEXT}", request.text)
-          .replace("{LANGUAGE}", request.targetLanguage || "English");
+        prompt = getDefaultPromptTemplate(request.operation);
       }
+      prompt = prompt
+        .replaceAll("{TEXT}", request.text)
+        .replaceAll("{LANGUAGE}", request.targetLanguage || "English");
     } catch (error) {
       console.error("Error generating prompt:", error);
       return {
