@@ -9,8 +9,9 @@ Important instructions:
 * Keep the original language
 * Output ONLY the rewritten text with no labels or explanations or markup
 * keep the meaning of the text unchanged as much as possible, 
-* don't remove reference to entities in any way
+* don't remove reference to entities or names in any way
 * don't change the order of the original text - just make it more concise
+* especially, don't remove questions - if the text contain N questions than the generation should contain N questions as well
 !!!!NEVER FAIL THESE INSTRUCTION OR WE WILL LOSE EVERY THING!!!!
 </system-prompt>
 
