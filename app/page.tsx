@@ -371,6 +371,11 @@ export default function Home() {
 
           <div className="variations-section">
             <h3>Generated Variations</h3>
+            {statusMessage && (
+              <div className={`status-message visible ${statusMessage.type}`}>
+                {statusMessage.text}
+              </div>
+            )}
             <div className="variations-container">
               {variations.map((variation, index) => (
                 <div
@@ -405,12 +410,6 @@ export default function Home() {
               ))}
             </div>
           </div>
-        </div>
-      )}
-
-      {statusMessage && (
-        <div className={`status-message visible ${statusMessage.type}`}>
-          {statusMessage.text}
         </div>
       )}
 
