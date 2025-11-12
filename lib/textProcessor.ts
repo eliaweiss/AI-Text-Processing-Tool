@@ -4,6 +4,10 @@
 
 import { TextStreamer } from "@huggingface/transformers";
 import type { OperationType, ProcessRequest, ProcessResult } from "./types";
+import rephrasePrompt from "../prompts/rephrase.md";
+import grammarPrompt from "../prompts/grammar.md";
+import translatePrompt from "../prompts/translate.md";
+import defaultPrompt from "../prompts/default.md";
 
 /**
  * Get the default prompt template for an operation
@@ -11,35 +15,18 @@ import type { OperationType, ProcessRequest, ProcessResult } from "./types";
 export function getDefaultPromptTemplate(operation: OperationType): string {
   switch (operation) {
     case "rephrase":
-      return `You are a rephrase expert. Rewrite the following text to be more concise while preserving its meaning. Only output the rewritten text, nothing else.
-Keep the original language.
-Text: {TEXT}
-
-`;
+      return rephrasePrompt;
 
     case "grammar":
-      return `You are a grammar corrector. Fix only the grammatical and punctuation errors in the following text. Keep the original wording and sentence structure as much as possible. Only output the corrected text, nothing else.
-Keep the original language.
-Text: {TEXT}
-
-`;
+      return grammarPrompt;
 
     case "translate":
     case "translate-pt":
     case "translate-en":
-      return `You are a translator. Translate the following text from its current language to {LANGUAGE}. Output ONLY the translated text with no labels or explanations.
-The result text MUST be as long as the original text!!!
-Don't skip any part of the text - or we will lose everything!!!
-
-Text to translate: {TEXT}
-`;
+      return translatePrompt;
 
     default:
-      return `Process the following text:
-
-Text: {TEXT}
-
-Result:`;
+      return defaultPrompt;
   }
 }
 

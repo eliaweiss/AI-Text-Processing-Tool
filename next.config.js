@@ -15,6 +15,12 @@ const nextConfig = {
       layers: true,
     };
 
+    // Add loader for markdown files to import as raw strings
+    config.module.rules.push({
+      test: /\.md$/,
+      type: 'asset/source',
+    });
+
     return config;
   },
   // Enable static export if needed
