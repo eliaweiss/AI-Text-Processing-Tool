@@ -4,8 +4,8 @@
 
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #1e1e1e;
-  color: #e0e0e0;
+  background-color: #f5f5f5;
+  color: #333333;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -15,28 +15,28 @@ body {
 }
 
 .container {
-  background-color: #2d2d2d;
+  background-color: #ffffff;
   border-radius: 10px;
   padding: 30px;
-  box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.5);
+  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
   width: 80%;
   max-width: 800px;
 }
 
 h1 {
-  color: #64b5f6;
+  color: #1976d2;
   margin-top: 0;
   margin-bottom: 10px;
 }
 
 p {
-  color: #b0b0b0;
+  color: #666666;
   margin-bottom: 20px;
   font-size: 14px;
 }
 
 p strong {
-  color: #64b5f6;
+  color: #1976d2;
 }
 
 textarea {
@@ -45,21 +45,21 @@ textarea {
   border-radius: 5px;
   padding: 15px;
   font-size: 14px;
-  border: 1px solid #404040;
+  border: 1px solid #cccccc;
   resize: vertical;
-  background-color: #1a1a1a;
-  color: #e0e0e0;
+  background-color: #ffffff;
+  color: #333333;
   font-family: "Courier New", monospace;
 }
 
 textarea::placeholder {
-  color: #606060;
+  color: #999999;
 }
 
 textarea:focus {
   outline: none;
-  border-color: #64b5f6;
-  box-shadow: 0 0 5px rgba(100, 181, 246, 0.3);
+  border-color: #1976d2;
+  box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
 }
 
 @keyframes spin {
@@ -73,11 +73,11 @@ textarea:focus {
 
 .loading-indicator {
   padding: 12px;
-  background-color: #404040;
-  border-left: 4px solid #64b5f6;
+  background-color: #e3f2fd;
+  border-left: 4px solid #1976d2;
   border-radius: 4px;
   margin-bottom: 20px;
-  color: #64b5f6;
+  color: #1976d2;
   display: flex;
   align-items: center;
   gap: 10px;
